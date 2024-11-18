@@ -1,22 +1,16 @@
-import type { Metadata } from "next";
-import localFont from "next/font/local";
-import "./globals.css";
+import { Inter } from 'next/font/google'
+import { TooltipProvider } from "@/components/ui/tooltip"
+import "./globals.css"
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
 
-export const metadata: Metadata = {
-  title: "FileCabinet - Quick & Easy File Conversion",
-  description: "Convert your files quickly and securely with FileCabinet",
-};
+export const metadata = {
+  title: 'FileCabinet - Quick & Easy File Conversion',
+  description: 'Convert your files quickly and securely with FileCabinet',
+}
 
 export default function RootLayout({
   children,
@@ -24,10 +18,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <head />
-      <body>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <TooltipProvider>
+          <div className="min-h-screen bg-background">
+            <main>
+              {children}
+            </main>
+          </div>
+        </TooltipProvider>
       </body>
     </html>
   )

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ProgressTracker } from '@/lib/utils/progress-tracker';
 
 export async function GET(
-  req: NextRequest,
+  request: Request,
   { params }: { params: { jobId: string } }
 ) {
   try {
@@ -17,7 +17,7 @@ export async function GET(
     }
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: 'Failed to fetch progress' },
       { status: 500 }

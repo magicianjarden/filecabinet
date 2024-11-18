@@ -82,33 +82,26 @@ function StatCard({
             </div>
           )}
           
-          <TooltipProvider delayDuration={0}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button 
-                  className="p-2 hover:bg-green-50 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2" 
-                  type="button"
-                  aria-label={`More information about ${title}`}
-                >
-                  <Info className="w-5 h-5 text-green-600" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent 
-                side="left" 
-                className="max-w-[300px] p-4 bg-slate-900 text-slate-50"
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button 
+                className="p-2 hover:bg-green-50 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2" 
+                type="button"
+                aria-label={`More information about ${title}`}
               >
-                <div className="space-y-2">
-                  <p className="font-medium">{title}</p>
-                  <p className="text-sm text-slate-300">{description}</p>
-                  {trend && (
-                    <p className="text-xs text-slate-400 mt-1">
-                      {trend.direction === 'up' ? 'Increased' : 'Decreased'} by {trend.value} compared to last period
-                    </p>
-                  )}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                <Info className="w-5 h-5 text-green-600" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent 
+              side="left" 
+              className="max-w-[300px] p-4"
+            >
+              <div className="space-y-2">
+                <p className="font-medium">{title}</p>
+                <p className="text-sm">{description}</p>
+              </div>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
     </Card>

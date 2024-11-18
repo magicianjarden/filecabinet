@@ -85,12 +85,12 @@ export function FileUpload() {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="container mx-auto p-4 space-y-6 max-w-7xl">
       <Card className="relative border-2 border-green-600 bg-white overflow-hidden">
         <div className="relative z-10">
           <CardHeader>
             <CardTitle className="text-2xl font-black tracking-tight text-gradient">
-              File Converter
+              FileCabinet
             </CardTitle>
             <p className="text-sm text-slate-600 mt-1">
               Convert your files quickly and securely
@@ -140,6 +140,19 @@ export function FileUpload() {
         </div>
       </Card>
 
+      {history.length > 0 && (
+        <Card className="border-2 border-green-600 bg-white overflow-hidden">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">
+              Conversion History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FileHistory records={history} />
+          </CardContent>
+        </Card>
+      )}
+
       <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
         <div className="space-y-2 mb-6">
           <div className="flex items-center gap-2">
@@ -162,17 +175,6 @@ export function FileUpload() {
           conversionTimes={stats.conversionTimes}
         />
       </div>
-
-      {history.length > 0 && (
-        <Card className="border-2 border-green-600 bg-white overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-xl font-black">Recent Conversions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FileHistory records={history} />
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
