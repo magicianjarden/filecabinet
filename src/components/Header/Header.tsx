@@ -14,7 +14,7 @@ export function Header() {
             <ul className="flex items-center gap-4">
               <li>
                 <a 
-                  href="https://github.com/yourusername/filecabinet" 
+                  href="https://rusername/filecabinet" 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-slate-600 hover:text-green-600 transition-colors"
