@@ -1,0 +1,178 @@
+'use client';
+
+import { useState } from 'react';
+import { FileDropzone } from './FileDropzone';
+import { ConversionOptions } from './ConversionOptions';
+import { ProgressBar } from './ProgressBar';
+import { FileHistory } from '../FileHistory/FileHistory';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { ConversionRecord } from '@/types';
+import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@/lib/constants';
+import { Stats } from '../Stats/Stats';
+
+export function FileUpload() {
+  const [file, setFile] = useState<File | null>(null);
+  const [targetFormat, setTargetFormat] = useState<string>('');
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<ConversionRecord[]>([]);
+  const [stats, setStats] = useState({
+    totalConversions: 0,
+    totalSize: 0,
+    averageTime: 0,
+    conversionRate: 100,
+    conversionTimes: [] as number[],
+  });
+
+  const updateStats = (fileSize: number, conversionTime: number) => {
+    setStats(prev => {
+      const newTimes = [...prev.conversionTimes, conversionTime];
+      const avgTime = newTimes.reduce((a, b) => a + b, 0) / newTimes.length;
+      
+      return {
+        totalConversions: prev.totalConversions + 1,
+        totalSize: prev.totalSize + fileSize,
+        averageTime: avgTime,
+        conversionRate: ((prev.totalConversions + 1) / (prev.totalConversions + 1)) * 100,
+        conversionTimes: newTimes,
+      };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file || !targetFormat) return;
+
+    const startTime = performance.now();
+    setStatus('processing');
+    setProgress(0);
+    setError(null);
+
+    try {
+      // Simulate file conversion with progress
+      for (let i = 0; i <= 100; i += 10) {
+        setProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      const endTime = performance.now();
+      const conversionTime = (endTime - startTime) / 1000; // Convert to seconds
+
+      // Update stats
+      updateStats(file.size, conversionTime);
+
+      // Add to history
+      const newRecord: ConversionRecord = {
+        id: Date.now().toString(),
+        originalName: file.name,
+        convertedName: `${file.name.split('.')[0]}.${targetFormat}`,
+        originalFormat: file.name.split('.').pop() || '',
+        convertedFormat: targetFormat,
+        timestamp: new Date(),
+        downloadUrl: URL.createObjectURL(file),
+        type: 'document', // You might want to determine this based on the file type
+      };
+
+      setHistory(prev => [newRecord, ...prev]);
+      setStatus('completed');
+    } catch (err) {
+      setStatus('failed');
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-4 space-y-6">
+      <Card className="relative border-2 border-green-600 bg-white overflow-hidden">
+        <div className="relative z-10">
+          <CardHeader>
+            <CardTitle className="text-2xl font-black tracking-tight text-gradient">
+              File Converter
+            </CardTitle>
+            <p className="text-sm text-slate-600 mt-1">
+              Convert your files quickly and securely
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <FileDropzone
+                file={file}
+                onFileSelect={setFile}
+                accept={Object.values(SUPPORTED_FORMATS).flat().join(',')}
+                maxSize={MAX_FILE_SIZE}
+              />
+
+              {file && (
+                <>
+                  <Separator className="my-6 bg-gradient-to-r from-rose-500/20 to-transparent" />
+                  <ConversionOptions
+                    currentFormat={file.name.split('.').pop()?.toLowerCase() || ''}
+                    targetFormat={targetFormat}
+                    onFormatChange={setTargetFormat}
+                    file={file}
+                  />
+                </>
+              )}
+
+              {progress > 0 && (
+                <>
+                  <Separator className="my-6 bg-gradient-to-r from-rose-500/20 to-transparent" />
+                  <ProgressBar 
+                    progress={progress}
+                    status={status}
+                    error={error}
+                  />
+                </>
+              )}
+
+              <Button
+                type="submit"
+                disabled={!file || !targetFormat || status === 'processing'}
+                className="w-full"
+              >
+                {status === 'processing' ? 'Converting...' : 'Convert File'}
+              </Button>
+            </form>
+          </CardContent>
+        </div>
+      </Card>
+
+      <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+        <div className="space-y-2 mb-6">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-slate-900">
+              Global Statistics
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              Sitewide
+            </span>
+          </div>
+          <p className="text-sm text-slate-600">
+            Overall platform performance and conversion metrics
+          </p>
+        </div>
+        <Stats
+          totalConversions={stats.totalConversions}
+          totalSize={stats.totalSize}
+          averageTime={stats.averageTime}
+          conversionRate={stats.conversionRate}
+          conversionTimes={stats.conversionTimes}
+        />
+      </div>
+
+      {history.length > 0 && (
+        <Card className="border-2 border-green-600 bg-white overflow-hidden">
+          <CardHeader>
+            <CardTitle className="text-xl font-black">Recent Conversions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FileHistory records={history} />
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

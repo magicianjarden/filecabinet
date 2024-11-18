@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "buildEnvironment": {
+    "PANDOC_VERSION": "2.19",
+    "GRAPHICSMAGICK_VERSION": "1.3.40",
+    "FFMPEG_VERSION": "5.1.2"
+  }
+} 

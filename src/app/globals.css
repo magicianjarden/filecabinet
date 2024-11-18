@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core palette */
+    --primary: 22 163 74;     /* Green-600 */
+    --primary-light: 34 197 94;/* Green-500 */
+    --primary-dark: 21 128 61; /* Green-700 */
+    --primary-foreground: 255 255 255;
+
+    /* Background colors */
+    --background: 250 250 250;
+    --card: 255 255 255;
+    
+    /* Accent colors */
+    --accent: 240 253 244;    /* Green-50 */
+    --accent-hover: 220 252 231; /* Green-100 */
+    
+    /* Border colors */
+    --border: 22 163 74;
+    --border-light: 34 197 94;
+    
+    /* Text colors */
+    --text: 15 23 42;         /* Slate-900 */
+    --text-muted: 100 116 139; /* Slate-500 */
+  }
+
+  body {
+    @apply bg-[rgb(var(--background))] text-[rgb(var(--text))];
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-green-500;
+  }
+}
