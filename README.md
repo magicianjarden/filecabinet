@@ -55,3 +55,7 @@ This project is configured for easy deployment on Vercel. Simply:
 ## License
 
 MIT
+
+### Disclaimer
+
+I am not a professional developer, so this project is not perfect. If you have any suggestions or improvements, please let me know. Thank you all, enjoy!
