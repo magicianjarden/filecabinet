@@ -5,26 +5,15 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Force all pages to be server-side rendered
-  experimental: {
-    serverActions: {
-      allowedOrigins: ['localhost:3000', 'your-production-domain.com'],
-    },
-  },
-  // Disable static page generation
-  staticPageGenerationTimeout: 0,
   // Configure build output
   distDir: '.next',
-  // Disable page optimization
-  compress: false,
-  // Disable static file serving
-  assetPrefix: undefined,
-  // Force dynamic rendering
-  rewrites: async () => {
+  // Prevent 404 page generation
+  async redirects() {
     return [
       {
-        source: '/:path*',
-        destination: '/:path*',
+        source: '/404',
+        destination: '/',
+        permanent: false,
       },
     ]
   },
