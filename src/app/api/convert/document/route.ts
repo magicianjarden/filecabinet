@@ -17,6 +17,7 @@ import { nanoid } from 'nanoid';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
+export const bodyParser = false;
 
 export async function POST(req: NextRequest) {
   try {
@@ -111,10 +112,4 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return handleError(error);
   }
-}
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}; 
+} 
