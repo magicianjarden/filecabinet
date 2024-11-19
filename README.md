@@ -2,6 +2,9 @@
 
 A modern file conversion web application built with Next.js.
 
+
+### Currentl Work in Progress, not ready for direct use yet. 
+
 ## Features
 
 - Quick and easy file conversion
