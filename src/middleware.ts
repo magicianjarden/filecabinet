@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(_request: NextRequest) {
-  return NextResponse.next()
+export function middleware(request: NextRequest) {
+  const response = NextResponse.next()
+  return response
 }
 
-// Only run middleware on API routes
 export const config = {
-  matcher: '/api/:path*',
+  matcher: '/api/:path*'
 } 
