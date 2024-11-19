@@ -2,7 +2,6 @@
   "version": 2,
   "framework": "nextjs",
   "regions": ["iad1"],
-  "buildCommand": "prisma generate && next build",
   "headers": [
     {
       "source": "/(.*)",
