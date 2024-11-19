@@ -1,14 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "next build",
-  "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["iad1"],
-  "functions": {
-    "src/app/api/**/*": {
-      "memory": 1024
-    }
-  },
+  "buildCommand": "prisma generate && next build",
   "headers": [
     {
       "source": "/(.*)",
@@ -24,15 +18,6 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
-        }
-      ]
-    },
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate"
         }
       ]
     }
