@@ -35,6 +35,13 @@ const FORMAT_OPTIONS = {
   wav: ['mp3', 'ogg', 'aac'],
   ogg: ['mp3', 'wav', 'aac'],
   aac: ['mp3', 'wav', 'ogg'],
+  
+  // Archive formats
+  rar: ['zip'],
+  '7z': ['zip'],
+  tar: ['zip'],
+  gz: ['zip'],
+  zip: ['zip'],
 } as const;
 
 export function ConversionOptions({

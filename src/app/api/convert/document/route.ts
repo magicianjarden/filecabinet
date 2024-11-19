@@ -14,6 +14,15 @@ import {
 } from '@/lib/errors/custom-errors';
 import { nanoid } from 'nanoid';
 import { updateStats } from '@/lib/redis'
+import { 
+  DocumentInputFormat, 
+  DocumentOutputFormat 
+} from '@/types/formats';
+import { 
+  normalizeFormat,
+  isSupportedInputFormat,
+  isSupportedOutputFormat
+} from '@/config/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -55,6 +64,10 @@ export async function POST(req: NextRequest) {
 
     const { buffer, fileType, targetFormat, originalName } = result;
 
+    // Normalize formats by removing dots and converting to lowercase
+    const sourceFormat = normalizeFormat(fileType) as DocumentInputFormat;
+    const outputFormat = normalizeFormat(targetFormat) as DocumentOutputFormat;
+
     // Validate file size
     if (buffer.length > settings.maxFileSize.documents) {
       await progress.updateProgress({
@@ -66,13 +79,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate formats
-    if (!settings.supportedFormats.documents.input.includes(fileType)) {
-      await progress.updateProgress({
-        progress: 0,
-        status: 'failed',
-        message: 'Unsupported format'
-      });
-      throw new FileTypeError('Unsupported file format');
+    if (!isSupportedInputFormat('documents', sourceFormat)) {
+      throw new FileTypeError('Unsupported document format');
+    }
+
+    if (!isSupportedOutputFormat('documents', outputFormat)) {
+      throw new FileTypeError('Unsupported target format');
     }
 
     // Update progress
@@ -82,7 +94,7 @@ export async function POST(req: NextRequest) {
       message: 'Converting file...'
     });
 
-    const conversion = await convertDocument(buffer, fileType, targetFormat);
+    const conversion = await convertDocument(buffer, sourceFormat, outputFormat);
 
     if (!conversion.success) {
       await progress.updateProgress({

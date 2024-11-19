@@ -1,87 +1,107 @@
+import type { 
+  SupportedFormats, 
+  FileCategory,
+  FormatConfig
+} from '@/types/formats';
+
+type SupportedFormatsType = {
+  [K in FileCategory]: {
+    input: readonly string[];
+    output: readonly string[];
+  };
+};
+
 export const settings = {
-    // File size limits
-    maxFileSize: {
-      documents: 50 * 1024 * 1024,  // 50MB for documents
-      images: 25 * 1024 * 1024,     // 25MB for images
-      media: 500 * 1024 * 1024      // 500MB for media files
+  maxFileSize: {
+    images: 1024 * 1024 * 10,    // 10MB
+    documents: 1024 * 1024 * 20,  // 20MB
+    media: 1024 * 1024 * 50,     // 50MB
+    archives: 1024 * 1024 * 100,  // 100MB
+    code: 1024 * 1024 * 5,       // 5MB
+  } as const,
+
+  supportedFormats: {
+    archives: {
+      input: ['zip', 'rar', 'tar', 'gz', '7z'],
+      output: ['zip']
     },
-  
-    // Supported file formats
-    supportedFormats: {
-      documents: {
-        input: ['.pdf', '.docx', '.txt', '.rtf', '.md'],
-        output: {
-          pdf: ['.docx', '.txt', '.rtf'],
-          docx: ['.pdf', '.txt', '.rtf'],
-          txt: ['.pdf', '.docx'],
-          rtf: ['.pdf', '.docx'],
-          md: ['.pdf', '.docx', '.txt']
-        }
-      },
-      images: {
-        input: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.tiff'],
-        output: {
-          jpg: ['.png', '.webp', '.tiff'],
-          png: ['.jpg', '.webp', '.tiff'],
-          webp: ['.jpg', '.png'],
-          tiff: ['.jpg', '.png', '.webp']
-        }
-      },
-      media: {
-        input: ['.mp3', '.mp4', '.wav', '.avi', '.mov', '.webm'],
-        output: {
-          mp3: ['.wav', '.ogg'],
-          wav: ['.mp3', '.ogg'],
-          mp4: ['.avi', '.mov', '.webm'],
-          avi: ['.mp4', '.mov'],
-          mov: ['.mp4', '.avi']
-        }
-      }
+    code: {
+      input: ['json', 'yaml', 'yml', 'xml', 'csv'],
+      output: ['json', 'yaml', 'xml', 'csv']
     },
-  
-    // Conversion timeouts (in milliseconds)
-    conversionTimeouts: {
-      documents: 60000,  // 60 seconds
-      images: 30000,     // 30 seconds
-      media: 180000      // 3 minutes
+    documents: {
+      input: ['pdf', 'docx', 'txt', 'rtf', 'md'],
+      output: ['pdf', 'docx', 'txt']
     },
-  
-    // Error messages
-    errors: {
-      fileTooLarge: 'File size exceeds the maximum limit',
-      unsupportedFormat: 'File format is not supported',
-      conversionFailed: 'File conversion failed',
-      timeoutExceeded: 'Conversion timeout exceeded'
+    images: {
+      input: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+      output: ['jpg', 'png', 'webp']
     },
-  
-    // Stats tracking categories
-    statsCategories: {
-      totalConversions: 'Total conversions performed',
-      documentConversions: 'Document conversions',
-      imageConversions: 'Image conversions',
-      mediaConversions: 'Media conversions',
-      popularFormats: 'Most popular formats'
+    media: {
+      input: ['mp4', 'mov', 'avi', 'mp3', 'wav'],
+      output: ['mp4', 'mp3']
     }
-  }
-  
-  // Type definitions for better TypeScript support
-  export type FileCategory = 'documents' | 'images' | 'media'
-  export type SupportedInputFormat = keyof typeof settings.supportedFormats
-  
-  // Helper functions
-  export const isFormatSupported = (filename: string, category: FileCategory): boolean => {
-    const extension = filename.toLowerCase().match(/\.[0-9a-z]+$/)?.[0]
-    return extension ? settings.supportedFormats[category].input.includes(extension) : false
-  }
-  
-  export const getAvailableOutputFormats = (inputFormat: string, category: FileCategory): string[] => {
-    const extension = inputFormat.toLowerCase().match(/\.[0-9a-z]+$/)?.[0]
-    if (!extension) return []
-    
-    const formatKey = extension.slice(1) as keyof typeof settings.supportedFormats[typeof category]['output']
-    return settings.supportedFormats[category].output[formatKey] || []
-  }
-  
-  export const checkFileSize = (size: number, category: FileCategory): boolean => {
-    return size <= settings.maxFileSize[category]
-  }
+  } satisfies SupportedFormatsType
+} as const;
+
+export function isValidFileCategory(category: string): category is FileCategory {
+  return Object.keys(settings.supportedFormats).includes(category);
+}
+
+export function getMaxFileSizeForCategory(category: FileCategory): number {
+  return settings.maxFileSize[category];
+}
+
+export function isSupportedInputFormat(
+  category: FileCategory,
+  format: string
+): boolean {
+  const normalizedFormat = normalizeFormat(format);
+  return settings.supportedFormats[category].input.includes(normalizedFormat);
+}
+
+export function isSupportedOutputFormat(
+  category: FileCategory,
+  format: string
+): boolean {
+  const normalizedFormat = normalizeFormat(format);
+  return settings.supportedFormats[category].output.includes(normalizedFormat);
+}
+
+export function normalizeFormat(format: string): string {
+  return format.toLowerCase().replace(/^\./, '');
+}
+
+// Type guard for supported formats
+export function isValidFormat(format: string): boolean {
+  return Object.values(settings.supportedFormats).some(
+    ({ input, output }) => 
+      input.includes(normalizeFormat(format)) || 
+      output.includes(normalizeFormat(format))
+  );
+}
+
+// Helper to get mime type for format
+export function getMimeType(format: string): string {
+  const normalized = normalizeFormat(format);
+  const mimeTypes: Record<string, string> = {
+    pdf: 'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    txt: 'text/plain',
+    json: 'application/json',
+    yaml: 'application/yaml',
+    xml: 'application/xml',
+    csv: 'text/csv',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    mp4: 'video/mp4',
+    mov: 'video/quicktime',
+    avi: 'video/x-msvideo',
+    mp3: 'audio/mpeg',
+    wav: 'audio/x-wav'
+  };
+  return mimeTypes[normalized] || '';
+}
