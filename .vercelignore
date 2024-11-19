@@ -1,3 +1,4 @@
 .next/cache
 .next/export
-.next/export-detail.json 
+.next/export-detail.json
+node_modules 

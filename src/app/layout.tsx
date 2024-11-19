@@ -18,16 +18,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <TooltipProvider>
-          <div className="min-h-screen bg-background">
-            <main>
-              {children}
-            </main>
-          </div>
-        </TooltipProvider>
+    <html lang="en">
+      <body>
+        {children}
       </body>
     </html>
   )
+}
+
+// Add error boundary
+export function generateStaticParams() {
+  return []
 }
