@@ -18,6 +18,11 @@ A modern file conversion web application built with Next.js.
 - Shadcn/ui
 - Lucide Icons
 
+## Conversion
+
+- nextswagger-doc --> Docs and Text 
+- fluentffmpeg --> Audio Video
+
 ## Getting Started
 
 1. Clone the repository:
