@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { FileIcon, Clock, HardDrive } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils/format';
 import { cn } from "@/lib/utils";
+import { settings } from '@/config/settings';
 
 interface ConversionOptionsProps {
   currentFormat: string;
@@ -12,37 +13,20 @@ interface ConversionOptionsProps {
   file: File;
 }
 
-const FORMAT_OPTIONS = {
-  // Document formats
-  pdf: ['docx', 'txt', 'rtf'],
-  docx: ['pdf', 'txt', 'rtf'],
-  txt: ['pdf', 'docx', 'rtf'],
-  rtf: ['pdf', 'docx', 'txt'],
+function getAvailableFormats(inputFormat: string): string[] {
+  // Normalize the input format
+  const normalizedFormat = inputFormat.toLowerCase().replace(/^\./, '');
   
-  // Image formats
-  jpg: ['png', 'webp', 'gif'],
-  jpeg: ['png', 'webp', 'gif'],
-  png: ['jpg', 'webp', 'gif'],
-  webp: ['jpg', 'png', 'gif'],
-  gif: ['jpg', 'png', 'webp'],
+  // Find which category this format belongs to
+  for (const [category, formats] of Object.entries(settings.supportedFormats)) {
+    if (formats.input.includes(normalizedFormat)) {
+      // Return the available output formats for this category
+      return formats.output;
+    }
+  }
   
-  // Media formats
-  mp4: ['webm', 'mov', 'avi'],
-  webm: ['mp4', 'mov', 'avi'],
-  mov: ['mp4', 'webm', 'avi'],
-  avi: ['mp4', 'webm', 'mov'],
-  mp3: ['wav', 'ogg', 'aac'],
-  wav: ['mp3', 'ogg', 'aac'],
-  ogg: ['mp3', 'wav', 'aac'],
-  aac: ['mp3', 'wav', 'ogg'],
-  
-  // Archive formats
-  rar: ['zip'],
-  '7z': ['zip'],
-  tar: ['zip'],
-  gz: ['zip'],
-  zip: ['zip'],
-} as const;
+  return [];
+}
 
 export function ConversionOptions({
   currentFormat,
@@ -50,7 +34,7 @@ export function ConversionOptions({
   onFormatChange,
   file
 }: ConversionOptionsProps) {
-  const availableFormats = FORMAT_OPTIONS[currentFormat.toLowerCase() as keyof typeof FORMAT_OPTIONS] || [];
+  const availableFormats = getAvailableFormats(currentFormat);
   const lastModified = new Date(file.lastModified).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
