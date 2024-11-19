@@ -2,6 +2,20 @@
   "version": 2,
   "framework": "nextjs",
   "regions": ["iad1"],
+  "functions": {
+    "api/convert/image.js": {
+      "maxDuration": 60
+    },
+    "api/convert/document.js": {
+      "maxDuration": 60
+    },
+    "api/convert/media.js": {
+      "maxDuration": 60
+    },
+    "api/progress/[jobId].js": {
+      "maxDuration": 10
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
