@@ -1,12 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  // Disable static page generation
-  generateStaticParams: false,
-  // Disable static exports
-  trailingSlash: false,
-  // Force dynamic rendering
-  dynamicParams: true,
+  // Disable page optimization
+  swcMinify: false,
+  // Disable static optimization
+  optimizeFonts: false,
+  // Configure build output
+  experimental: {
+    // Disable trace analytics
+    instrumentationHook: false,
+    // Disable static page optimization
+    optimizePackageImports: [],
+    // Force server components
+    serverComponentsExternalPackages: ['*']
+  }
 }
 
 module.exports = nextConfig 
