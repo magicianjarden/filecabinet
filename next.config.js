@@ -2,13 +2,9 @@
 const nextConfig = {
   output: 'standalone',
   experimental: {
-    // Only specify packages that should be bundled
-    serverComponentsExternalPackages: [
-      '@aws-sdk/client-s3',
-      'sharp',
-      'firebase-admin'
-    ]
-  }
+    appDir: true,
+  },
+  swcMinify: false,
 }
 
 module.exports = nextConfig 
