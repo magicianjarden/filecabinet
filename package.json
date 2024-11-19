@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@radix-ui/react-hover-card": "^1.0.7",
     "@radix-ui/react-progress": "1.0.3",
     "@radix-ui/react-select": "2.0.0",
@@ -26,9 +28,7 @@
     "next-swagger-doc": "0.4.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "tailwind-merge": "2.2.1",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "@ffprobe-installer/ffprobe": "^2.1.2"
+    "tailwind-merge": "2.2.1"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
@@ -40,6 +40,7 @@
     "autoprefixer": "^10.4.17",
     "eslint": "^9.15.0",
     "eslint-config-next": "^15.0.3",
+    "null-loader": "^4.0.1",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
