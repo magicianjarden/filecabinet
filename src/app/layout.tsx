@@ -20,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        <TooltipProvider>
+          {children}
+        </TooltipProvider>
       </body>
     </html>
   )
