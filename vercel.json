@@ -3,5 +3,15 @@
   "buildCommand": "next build",
   "devCommand": "next dev",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "functions": {
+    "api/**/*": {
+      "memory": 1024
+    }
+  },
+  "builds": [
+    {
+      "src": "next.config.js",
+      "use": "@vercel/next"
+    }
+  ]
 } 
