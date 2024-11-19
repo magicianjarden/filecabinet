@@ -23,8 +23,9 @@ A modern file conversion web application built with Next.js.
 
 ## Conversion
 
-- nextswagger-doc --> Docs and Text 
-- fluentffmpeg --> Audio Video
+- nextswagger-doc --> Images & Docs
+- fluentffmpeg --> Audio & Video
+- more coming soon
 
 ## Getting Started
 
