@@ -3,7 +3,7 @@
 A modern file conversion web application built with Next.js.
 
 
-### Currentl Work in Progress, not ready for direct use yet. 
+#### Currently a work in progress, not ready for pull use yet. 
 
 ## Features
 
