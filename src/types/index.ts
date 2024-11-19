@@ -9,3 +9,11 @@ export interface ConversionRecord {
     type: 'document' | 'image' | 'media';
   }
   
+export interface ConversionStats {
+    totalConversions: number;
+    totalSize: number;
+    averageTime: number;
+    conversionRate: number;
+    conversionTimes: number[];
+  }
+  
