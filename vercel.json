@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "functions": {
-    "api/**/*.ts": {
+    "src/app/api/**/*": {
       "maxDuration": 60
     }
   },
