@@ -1,16 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  async rewrites() {
-    return {
-      fallback: [
-        {
-          source: '/:path*',
-          destination: '/_not-found',
-        },
-      ],
-    }
+  experimental: {
+    isrMemoryCacheSize: 0,
   },
+  staticPageGenerationTimeout: 0,
 }
 
 module.exports = nextConfig 
