@@ -3,7 +3,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 @layer base {
   :root {
     /* Core palette */
@@ -40,3 +39,4 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-green-500;
   }
 }
+
