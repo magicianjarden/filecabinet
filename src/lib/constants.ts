@@ -1,8 +1,14 @@
+import { settings } from '@/config/settings'
+
 export const SUPPORTED_FORMATS = {
-  document: ['pdf', 'docx', 'txt', 'rtf'],
-  image: ['jpg', 'png', 'webp', 'gif'],
-  media: ['mp4', 'mp3', 'wav']
+  documents: ['.pdf', '.doc', '.docx', '.txt'],
+  images: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+  media: ['.mp4', '.mov', '.avi', '.mp3', '.wav']
 };
 
-// 10MB in bytes
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; 
+// Use the largest size from settings as the general max size
+export const MAX_FILE_SIZE = Math.max(
+  settings.maxFileSize.documents,
+  settings.maxFileSize.images,
+  settings.maxFileSize.media
+);

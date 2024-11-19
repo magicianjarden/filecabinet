@@ -13,23 +13,90 @@ import {
   ConversionError 
 } from '@/lib/errors/custom-errors';
 import { nanoid } from 'nanoid';
+import { updateStats } from '@/lib/redis'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  
   try {
-    const formData = await request.formData()
-    const file = formData.get('file') as File
+    // Check rate limit
+    const ip = getClientIp(request)
+    const { success: rateLimitSuccess } = await ratelimit.limit(ip)
     
-    // ... rest of your conversion logic ...
+    if (!rateLimitSuccess) {
+      throw new RateLimitError()
+    }
+
+    // Generate unique job ID
+    const jobId = nanoid()
+    const progress = new ProgressTracker(jobId)
+
+    await progress.updateProgress({
+      progress: 0,
+      status: 'pending',
+      message: 'Starting conversion...'
+    })
+
+    const result = await parseFormData(request)
     
-    return NextResponse.json({ success: true })
+    if (!result.success) {
+      await progress.updateProgress({
+        progress: 0,
+        status: 'failed',
+        message: result.error
+      })
+      throw new ValidationError(result.error)
+    }
+
+    const { buffer, fileType, targetFormat, originalName } = result
+
+    // Validate file size
+    if (buffer.length > settings.maxFileSize.media) {
+      await progress.updateProgress({
+        progress: 0,
+        status: 'failed',
+        message: 'File too large'
+      })
+      throw new FileSizeError('File exceeds maximum size limit')
+    }
+
+    const conversion = await convertMedia(buffer, fileType, targetFormat)
+
+    if (!conversion.success) {
+      await progress.updateProgress({
+        progress: 0,
+        status: 'failed',
+        message: conversion.error || 'Conversion failed'
+      })
+      throw new ConversionError(conversion.error || 'Failed to convert media')
+    }
+
+    // Update stats after successful conversion
+    const conversionTime = (Date.now() - startTime) / 1000
+    await updateStats(targetFormat, buffer.length, conversionTime)
+
+    await progress.updateProgress({
+      progress: 100,
+      status: 'completed',
+      message: 'Conversion complete'
+    })
+
+    return new Response(conversion.data, {
+      headers: {
+        'Content-Type': conversion.mimeType || 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="${originalName.replace(
+          new RegExp(fileType + '$'), 
+          targetFormat
+        )}"`,
+        'X-Job-ID': jobId
+      },
+    })
+
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Media conversion failed' },
-      { status: 500 }
-    )
+    return handleError(error)
   }
 } 

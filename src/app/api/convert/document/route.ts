@@ -13,12 +13,15 @@ import {
   ConversionError 
 } from '@/lib/errors/custom-errors';
 import { nanoid } from 'nanoid';
+import { updateStats } from '@/lib/redis'
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now()
+  
   try {
     // Check rate limit
     const ip = getClientIp(req);
@@ -89,6 +92,10 @@ export async function POST(req: NextRequest) {
       });
       throw new ConversionError(conversion.error || 'Failed to convert document');
     }
+
+    // Update stats after successful conversion
+    const conversionTime = (Date.now() - startTime) / 1000
+    await updateStats(targetFormat, buffer.length, conversionTime)
 
     // Update progress
     await progress.updateProgress({

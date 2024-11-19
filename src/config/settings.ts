@@ -1,9 +1,9 @@
 export const settings = {
     // File size limits
     maxFileSize: {
-      documents: 25 * 1024 * 1024,  // 25MB for documents
-      images: 15 * 1024 * 1024,     // 15MB for images
-      media: 100 * 1024 * 1024      // 100MB for media files
+      documents: 50 * 1024 * 1024,  // 50MB for documents
+      images: 25 * 1024 * 1024,     // 25MB for images
+      media: 500 * 1024 * 1024      // 500MB for media files
     },
   
     // Supported file formats
