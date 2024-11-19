@@ -2,12 +2,11 @@
 const nextConfig = {
   output: 'standalone',
   experimental: {
-    serverActions: {
-      allowedOrigins: ['*']
-    }
+    serverActions: true
   },
-  images: {
-    domains: ['fonts.googleapis.com']
+  distDir: '.next',
+  async redirects() {
+    return [];
   }
 }
 
