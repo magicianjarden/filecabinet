@@ -1,3 +1,5 @@
+export * from './stats';
+// Export any other types you have
 export interface ConversionRecord {
     id: string;
     originalName: string;
@@ -6,14 +8,6 @@ export interface ConversionRecord {
     convertedFormat: string;
     timestamp: Date;
     downloadUrl: string;
-    type: 'document' | 'image' | 'media';
-  }
-  
-export interface ConversionStats {
-    totalConversions: number;
-    totalSize: number;
-    averageTime: number;
-    conversionRate: number;
-    conversionTimes: number[];
+    type: string;
   }
   

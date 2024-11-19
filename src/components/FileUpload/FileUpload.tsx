@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileDropzone } from './FileDropzone';
 import { ConversionOptions } from './ConversionOptions';
 import { ProgressBar } from './ProgressBar';
@@ -8,9 +8,10 @@ import { FileHistory } from '../FileHistory/FileHistory';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ConversionRecord } from '@/types';
+import { ConversionRecord, ConversionStats } from '@/types';
 import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@/lib/constants';
-import { Stats } from '../Stats/Stats';
+import { getInitialStats, updateStats } from '@/lib/utils/stats';
+import { Stats } from '@/components/Stats/Stats';
 
 export function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -19,28 +20,11 @@ export function FileUpload() {
   const [status, setStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<ConversionRecord[]>([]);
-  const [stats, setStats] = useState({
-    totalConversions: 0,
-    totalSize: 0,
-    averageTime: 0,
-    conversionRate: 100,
-    conversionTimes: [] as number[],
-  });
+  const [stats, setStats] = useState<ConversionStats | null>(null);
 
-  const updateStats = (fileSize: number, conversionTime: number) => {
-    setStats(prev => {
-      const newTimes = [...prev.conversionTimes, conversionTime];
-      const avgTime = newTimes.reduce((a, b) => a + b, 0) / newTimes.length;
-      
-      return {
-        totalConversions: prev.totalConversions + 1,
-        totalSize: prev.totalSize + fileSize,
-        averageTime: avgTime,
-        conversionRate: ((prev.totalConversions + 1) / (prev.totalConversions + 1)) * 100,
-        conversionTimes: newTimes,
-      };
-    });
-  };
+  useEffect(() => {
+    setStats(getInitialStats());
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,8 +45,16 @@ export function FileUpload() {
       const endTime = performance.now();
       const conversionTime = (endTime - startTime) / 1000; // Convert to seconds
 
-      // Update stats
-      updateStats(file.size, conversionTime);
+      const newStats = updateStats(
+        file.size,
+        conversionTime,
+        file.name.split('.').pop() || '',
+        targetFormat,
+        true // success
+      );
+      
+      setStats(newStats);
+      setStatus('completed');
 
       // Add to history
       const newRecord: ConversionRecord = {
@@ -77,8 +69,16 @@ export function FileUpload() {
       };
 
       setHistory(prev => [newRecord, ...prev]);
-      setStatus('completed');
     } catch (err) {
+      const newStats = updateStats(
+        file.size,
+        0,
+        file.name.split('.').pop() || '',
+        targetFormat,
+        false // failed
+      );
+      
+      setStats(newStats);
       setStatus('failed');
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -153,28 +153,30 @@ export function FileUpload() {
         </Card>
       )}
 
-      <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
-        <div className="space-y-2 mb-6">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold text-slate-900">
-              Global Statistics
-            </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Sitewide
-            </span>
+      {stats && (
+        <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+          <div className="space-y-2 mb-6">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-slate-900">
+                Global Statistics
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Sitewide
+              </span>
+            </div>
+            <p className="text-sm text-slate-600">
+              Overall platform performance and conversion metrics
+            </p>
           </div>
-          <p className="text-sm text-slate-600">
-            Overall platform performance and conversion metrics
-          </p>
+          <Stats
+            totalConversions={stats.totalConversions}
+            totalSize={stats.totalSize}
+            averageTime={stats.averageTime}
+            conversionRate={stats.conversionRate}
+            conversionTimes={stats.conversionTimes}
+          />
         </div>
-        <Stats
-          totalConversions={stats.totalConversions}
-          totalSize={stats.totalSize}
-          averageTime={stats.averageTime}
-          conversionRate={stats.conversionRate}
-          conversionTimes={stats.conversionTimes}
-        />
-      </div>
+      )}
     </div>
   );
 }
