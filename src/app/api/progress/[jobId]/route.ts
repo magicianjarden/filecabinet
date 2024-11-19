@@ -1,26 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ProgressTracker } from '@/lib/utils/progress-tracker';
+import { getJobProgress } from '@/lib/queue';
+
+type RouteParams = {
+  params: {
+    jobId: string;
+  };
+};
 
 export async function GET(
-  request: Request,
-  { params }: { params: { jobId: string } }
+  _request: NextRequest,
+  { params }: RouteParams
 ) {
   try {
-    const progress = new ProgressTracker(params.jobId);
-    const data = await progress.getProgress();
-
-    if (!data) {
-      return NextResponse.json(
-        { error: 'Job not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(data);
+    const progress = await getJobProgress(params.jobId);
+    return NextResponse.json(progress);
   } catch (_error) {
-    return NextResponse.json(
-      { error: 'Failed to fetch progress' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get progress' }, { status: 500 });
   }
 } 
