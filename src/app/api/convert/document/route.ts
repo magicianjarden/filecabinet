@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { convertDocument } from '@/lib/converters/document';
 import { parseFormData } from '@/lib/utils/upload-handler';
 import { settings } from '@/config/settings';
@@ -13,6 +13,10 @@ import {
   ConversionError 
 } from '@/lib/errors/custom-errors';
 import { nanoid } from 'nanoid';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobProgress } from '@/lib/queue';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 type RouteParams = {
   params: {
     jobId: string;
