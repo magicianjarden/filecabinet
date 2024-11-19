@@ -3,16 +3,16 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "functions": {
-    "api/convert/image.js": {
+    "app/api/convert/image/route.ts": {
       "maxDuration": 60
     },
-    "api/convert/document.js": {
+    "app/api/convert/document/route.ts": {
       "maxDuration": 60
     },
-    "api/convert/media.js": {
+    "app/api/convert/media/route.ts": {
       "maxDuration": 60
     },
-    "api/progress/[jobId].js": {
+    "app/api/progress/[jobId]/route.ts": {
       "maxDuration": 10
     }
   },
