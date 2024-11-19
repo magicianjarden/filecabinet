@@ -19,14 +19,16 @@
     "@upstash/redis": "1.28.4",
     "class-variance-authority": "0.7.0",
     "clsx": "2.1.0",
-    "fluent-ffmpeg": "2.1.2",
+    "fluent-ffmpeg": "^2.1.2",
     "gm": "1.25.0",
     "lucide-react": "0.344.0",
     "next": "14.2.18",
     "next-swagger-doc": "0.4.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "tailwind-merge": "2.2.1"
+    "tailwind-merge": "2.2.1",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",

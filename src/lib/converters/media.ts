@@ -4,6 +4,14 @@ import { settings } from '@/config/settings';
 import { ConversionResult, ConversionOptions, ConversionError } from './types';
 import { getMimeType } from '../utils/mime-types';
 
+// Only import and configure ffmpeg on the server side
+if (typeof window === 'undefined') {
+  const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+  const ffprobePath = require('@ffprobe-installer/ffprobe').path;
+  ffmpeg.setFfmpegPath(ffmpegPath);
+  ffmpeg.setFfprobePath(ffprobePath);
+}
+
 export async function convertMedia(
   input: Buffer,
   inputFormat: string,
