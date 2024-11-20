@@ -1,5 +1,5 @@
-export type ArchiveInputFormat = 'zip' | 'rar' | '7z' | 'tar' | 'gz';
-export type ArchiveOutputFormat = 'zip' | 'rar' | '7z';
+export type ArchiveInputFormat = 'zip';
+export type ArchiveOutputFormat = 'zip';
 
 export type CodeInputFormat = 'json' | 'yaml' | 'yml' | 'xml' | 'csv';
 export type CodeOutputFormat = 'json' | 'yaml' | 'xml' | 'csv';
