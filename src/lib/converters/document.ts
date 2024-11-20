@@ -3,6 +3,7 @@ import { settings } from '@/config/settings';
 import mammoth from 'mammoth';
 import pdfParse from 'pdf-parse';
 import { marked } from 'marked';
+import { Document, Packer, Paragraph, TextRun } from 'docx';
 
 export const documentConverter: Converter = {
   name: 'Document Converter',
@@ -28,9 +29,7 @@ export const documentConverter: Converter = {
 
         case 'md':
           const mdText = input.toString('utf-8');
-          // Convert Markdown to plain text by first converting to HTML
           const html = await Promise.resolve(marked(mdText));
-          // Simple HTML to text conversion
           text = html.replace(/<[^>]*>/g, '');
           break;
 
@@ -39,10 +38,9 @@ export const documentConverter: Converter = {
           break;
 
         case 'rtf':
-          // Basic RTF to text conversion
           text = input.toString('utf-8')
-            .replace(/[\\][\w\d]+/g, '') // Remove RTF commands
-            .replace(/[{}]/g, '')        // Remove braces
+            .replace(/[\\][\w\d]+/g, '')
+            .replace(/[{}]/g, '')
             .trim();
           break;
 
@@ -56,7 +54,6 @@ export const documentConverter: Converter = {
           return Buffer.from(text, 'utf-8');
 
         case 'md':
-          // Simple text to Markdown conversion
           const md = text
             .split('\n\n')
             .map(para => para.trim())
@@ -65,23 +62,25 @@ export const documentConverter: Converter = {
           return Buffer.from(md, 'utf-8');
 
         case 'docx': {
-          // For DOCX, we'll create a simple HTML structure and convert it
-          const htmlContent = `
-            <html>
-              <body>
-                ${text.split('\n\n')
-                  .map(para => `<p>${para.trim()}</p>`)
-                  .join('\n')}
-              </body>
-            </html>
-          `;
-
-          // Convert HTML to DOCX using mammoth's conversion
-          const result = await mammoth.convertToDocx({
-            value: htmlContent,
-            options: { styleMap: ['p => p'] }
+          // Create a new Word document
+          const doc = new Document({
+            sections: [{
+              properties: {},
+              children: text
+                .split('\n\n')
+                .filter(para => para.trim())
+                .map(para => new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: para.trim(),
+                    }),
+                  ],
+                })),
+            }],
           });
-          return Buffer.from(result);
+
+          // Generate the DOCX buffer
+          return await Packer.toBuffer(doc);
         }
 
         default:
