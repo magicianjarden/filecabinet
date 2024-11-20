@@ -24,7 +24,7 @@
     "@types/sharp": "^0.31.1",
     "@upstash/ratelimit": "1.0.0",
     "@upstash/redis": "1.28.4",
-    "@vercel/kv": "^3.0.0",
+    "@vercel/kv": "^latest",
     "adm-zip": "^0.5.10",
     "class-variance-authority": "^0.7.0",
     "clsx": "2.1.0",
@@ -41,9 +41,11 @@
     "next-swagger-doc": "0.4.0",
     "papaparse": "^5.4.1",
     "pdf-parse": "^1.1.1",
-    "recharts": "^2.13.3",
-    "sharp": "^0.33.5",
-    "tailwind-merge": "^2.5.4"
+    "recharts": "^latest",
+    "sharp": "^latest",
+    "tailwind-merge": "^latest",
+    "pdf-lib": "^1.17.1",
+    "sonner": "^latest"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
