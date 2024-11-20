@@ -11,6 +11,8 @@ import { PerformanceMetrics } from "@/components/Stats/PerformanceMetrics";
 import { ConversionTrends } from "@/components/Stats/ConversionTrends";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 export default function StatsPage() {
   const [stats, setStats] = useState<ConversionStats>(getInitialStats());
@@ -55,13 +57,25 @@ export default function StatsPage() {
 
   return (
     <div className="container mx-auto py-8 space-y-8">
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
+      </div>
+
+      {/* Page Title */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Conversion Statistics</h1>
         <p className="text-sm text-muted-foreground">
           Last updated: {new Date(stats.lastUpdated).toLocaleTimeString()}
         </p>
       </div>
-      
+
+      {/* Stats Content */}
       <div className="grid gap-8">
         <ConversionTrends 
           hourlyActivity={stats.hourlyActivity}
