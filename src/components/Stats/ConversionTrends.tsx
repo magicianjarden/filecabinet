@@ -31,20 +31,20 @@ export function ConversionTrends({ stats }: ConversionTrendsProps) {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4 border border-slate-200 bg-white/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Activity className="w-4 h-4 text-blue-500" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        <Card className="p-3 sm:p-4 border border-slate-200 bg-white/50">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-blue-50 rounded-lg shrink-0">
+              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-600">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">
                 Total Conversions
               </p>
               <div className="flex items-center gap-1.5">
-                <p className="text-2xl font-bold text-slate-900">
+                <p className="text-lg sm:text-2xl font-bold text-slate-900">
                   {stats.totalConversions.toLocaleString()}
                 </p>
                 <span className="flex items-center text-xs font-medium text-green-600">
@@ -56,17 +56,17 @@ export function ConversionTrends({ stats }: ConversionTrendsProps) {
           </div>
         </Card>
 
-        <Card className="p-4 border border-slate-200 bg-white/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-50 rounded-lg">
-              <Clock className="w-4 h-4 text-green-500" />
+        <Card className="p-3 sm:p-4 border border-slate-200 bg-white/50">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-green-50 rounded-lg shrink-0">
+              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-600">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">
                 Average Time
               </p>
               <div className="flex items-center gap-1.5">
-                <p className="text-2xl font-bold text-slate-900">2.3s</p>
+                <p className="text-lg sm:text-2xl font-bold text-slate-900">2.3s</p>
                 <span className="flex items-center text-xs font-medium text-green-600">
                   <ArrowDownIcon className="w-3 h-3" />
                   8%
@@ -76,17 +76,17 @@ export function ConversionTrends({ stats }: ConversionTrendsProps) {
           </div>
         </Card>
 
-        <Card className="p-4 border border-slate-200 bg-white/50">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-50 rounded-lg">
-              <Users className="w-4 h-4 text-purple-500" />
+        <Card className="p-3 sm:p-4 border border-slate-200 bg-white/50">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 bg-purple-50 rounded-lg shrink-0">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-500" />
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-600">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 truncate">
                 Active Users
               </p>
               <div className="flex items-center gap-1.5">
-                <p className="text-2xl font-bold text-slate-900">89</p>
+                <p className="text-lg sm:text-2xl font-bold text-slate-900">89</p>
                 <span className="flex items-center text-xs font-medium text-green-600">
                   <ArrowUpIcon className="w-3 h-3" />
                   24%
@@ -98,11 +98,11 @@ export function ConversionTrends({ stats }: ConversionTrendsProps) {
       </div>
 
       {/* Chart */}
-      <Card className="p-6 border border-slate-200">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-semibold text-slate-900">Conversion Activity</h3>
+      <Card className="p-3 sm:p-6 border border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <h3 className="font-semibold text-slate-900 text-sm sm:text-base">Conversion Activity</h3>
           <Select defaultValue="week">
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] h-8 sm:h-10 text-xs sm:text-sm">
               <SelectValue placeholder="Select time range" />
             </SelectTrigger>
             <SelectContent>
@@ -113,13 +113,15 @@ export function ConversionTrends({ stats }: ConversionTrendsProps) {
           </Select>
         </div>
         
-        <div className="h-[300px]">
+        <div className="h-[200px] sm:h-[300px] -mx-3 sm:mx-0">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={getDummyData()}>
               <XAxis 
                 dataKey="name" 
                 stroke="#94a3b8"
-                fontSize={12}
+                fontSize={10}
+                tickMargin={8}
+                axisLine={false}
               />
               <YAxis 
                 stroke="#94a3b8"

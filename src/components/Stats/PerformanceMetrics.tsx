@@ -1,132 +1,120 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { Card } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Badge } from "@/components/ui/badge";
-import { Zap, Clock, AlertTriangle } from 'lucide-react';
 import { ConversionStats } from '@/types/stats';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface PerformanceMetricsProps {
   stats: ConversionStats;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg shadow-lg p-3">
+        <p className="text-sm font-medium text-slate-900 mb-1">{label}</p>
+        <div className="space-y-1 text-xs">
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-slate-600">
+              {entry.name}: <span className="font-medium text-slate-900">
+                {entry.value.toFixed(2)}s
+              </span>
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function PerformanceMetrics({ stats }: PerformanceMetricsProps) {
-  const hourlyData = Object.entries(stats.hourlyActivity)
-    .map(([hour, count]) => ({
-      hour: `${hour}:00`,
-      conversions: count,
-      avgTime: stats.averageTime
-    }))
-    .sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
-
-  // Find peak hour safely
-  const peakHour = hourlyData.length > 0 
-    ? hourlyData.reduce((a, b) => 
-        a.conversions > b.conversions ? a : b
-      ).hour
-    : 'No data';
-
-  // If no data, provide default chart data
-  const chartData = hourlyData.length > 0 
-    ? hourlyData 
-    : [{ hour: 'No data', conversions: 0, avgTime: 0 }];
+  const performanceData = stats.conversionTimes.map((time, index) => ({
+    name: `Conversion ${index + 1}`,
+    time
+  }));
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="p-4 border border-slate-200 bg-white/50 hover:bg-white/80 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-50 rounded-lg">
-              <Zap className="w-4 h-4 text-green-500" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-600">Success Rate</p>
-              <p className="text-2xl font-bold text-slate-900">
-                {stats.successRate.toFixed(1)}%
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 border border-slate-200 bg-white/50 hover:bg-white/80 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Clock className="w-4 h-4 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-600">
-                Average Time
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {stats.averageTime.toFixed(2)}s
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 border border-slate-200 bg-white/50 hover:bg-white/80 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-50 rounded-lg">
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-slate-600">
-                Error Rate
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {(100 - stats.successRate).toFixed(1)}%
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="p-6 border border-slate-200">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-semibold text-slate-900">Hourly Performance</h3>
-          <Badge variant="secondary">
-            Peak: {peakHour}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-4 sm:space-y-6"
+    >
+      <Card className="p-3 sm:p-6 border border-slate-200">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6"
+        >
+          <h3 className="font-semibold text-slate-900 text-sm sm:text-base">
+            Conversion Times
+          </h3>
+          <Badge variant="secondary" className="text-xs sm:text-sm w-fit">
+            Avg: {stats.averageTime.toFixed(2)}s
           </Badge>
-        </div>
+        </motion.div>
 
-        <div className="h-[300px]">
+        <div className="h-[200px] sm:h-[300px] -mx-3 sm:mx-0">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
+            <LineChart data={performanceData}>
               <XAxis 
-                dataKey="hour" 
+                dataKey="name" 
                 stroke="#94a3b8"
-                fontSize={12}
+                fontSize={10}
+                tickMargin={8}
+                axisLine={false}
+                tickLine={false}
               />
               <YAxis 
                 stroke="#94a3b8"
-                fontSize={12}
+                fontSize={10}
+                tickMargin={8}
+                axisLine={false}
+                tickLine={false}
               />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '6px',
-                  fontSize: '12px'
-                }}
-              />
+              <Tooltip content={<CustomTooltip />} />
               <Line 
                 type="monotone" 
-                dataKey="conversions" 
-                stroke="#16a34a" 
+                dataKey="time" 
+                stroke="#16a34a"
                 strokeWidth={2}
                 dot={false}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="avgTime" 
-                stroke="#0ea5e9" 
-                strokeWidth={2}
-                dot={false}
+                animationBegin={0}
+                animationDuration={1500}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </Card>
-    </div>
+
+      {/* Performance Metrics Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Card className="p-3 sm:p-6 border border-slate-200">
+          <h3 className="font-semibold text-slate-900 text-sm sm:text-base mb-4">
+            Performance Summary
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              className="p-4 rounded-lg bg-slate-50"
+            >
+              <p className="text-sm text-slate-600">Average Time</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {stats.averageTime.toFixed(2)}s
+              </p>
+            </motion.div>
+            {/* Add more performance metrics as needed */}
+          </div>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 } 

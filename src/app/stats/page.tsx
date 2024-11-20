@@ -35,16 +35,16 @@ export default function StatsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+      <div className="container mx-auto px-4 flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
+        <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-slate-400" />
       </div>
     );
   }
 
   if (!stats) {
     return (
-      <div className="container mx-auto p-4">
-        <Card className="p-6 text-center text-slate-600">
+      <div className="container mx-auto px-4 py-4 sm:py-6">
+        <Card className="p-4 sm:p-6 text-center text-slate-600">
           No statistics available
         </Card>
       </div>
@@ -52,24 +52,46 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6 max-w-7xl">
-      <Card className="p-6 border-2 border-green-600/20 bg-white">
-        <div className="space-y-2 mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+    <div className="container mx-auto p-4 space-y-4 sm:space-y-6 max-w-7xl">
+      <Card className="p-4 sm:p-6 border-2 border-green-600/20 bg-white">
+        <div className="space-y-2 mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
             Conversion Analytics
           </h1>
-          <p className="text-slate-600">
+          <p className="text-sm sm:text-base text-slate-600">
             Detailed insights into file conversion performance and usage patterns
           </p>
         </div>
 
-        <Tabs defaultValue="trends" className="space-y-6">
-          <TabsList className="inline-flex h-9 items-center justify-center rounded-lg bg-slate-100 p-1 text-slate-500">
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="formats">Formats</TabsTrigger>
-            <TabsTrigger value="sizes">File Sizes</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="trends" className="space-y-4 sm:space-y-6">
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="w-full sm:w-auto min-w-max sm:min-w-0 bg-slate-100 p-1 rounded-lg">
+              <TabsTrigger 
+                value="trends"
+                className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 data-[state=active]:bg-white"
+              >
+                Trends
+              </TabsTrigger>
+              <TabsTrigger 
+                value="formats"
+                className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 data-[state=active]:bg-white"
+              >
+                Formats
+              </TabsTrigger>
+              <TabsTrigger 
+                value="sizes"
+                className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 data-[state=active]:bg-white"
+              >
+                File Sizes
+              </TabsTrigger>
+              <TabsTrigger 
+                value="performance"
+                className="text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 data-[state=active]:bg-white"
+              >
+                Performance
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="trends">
             <ConversionTrends stats={stats} />
