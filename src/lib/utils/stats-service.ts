@@ -10,6 +10,15 @@ function getSizeBucket(size: number): string {
   return '> 50MB';
 }
 
+function formatConversionPairs(formats: Record<string, number>): Array<{ from: string; to: string; count: number }> {
+  return Object.entries(formats)
+    .map(([key, count]) => {
+      const [from, to] = key.split('_to_');
+      return { from, to, count };
+    })
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function trackConversion(
   type: string,
   inputFormat: string,
@@ -72,6 +81,7 @@ export async function getGlobalStats(): Promise<ConversionStats> {
   const totalConversions = totals?.conversions || 0;
   const successfulConversions = totals?.successful || 0;
   const totalSize = totals?.total_size || 0;
+  const popularConversions = formatConversionPairs(formats || {});
 
   return {
     totalConversions,
@@ -92,6 +102,7 @@ export async function getGlobalStats(): Promise<ConversionStats> {
       ? (successfulConversions / totalConversions) * 100 
       : 0,
     lastUpdated: new Date().toISOString(),
+    popularConversions,
   };
 }
 

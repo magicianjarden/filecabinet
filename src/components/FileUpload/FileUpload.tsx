@@ -23,7 +23,7 @@ export function FileUpload() {
   const [status, setStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<ConversionRecord[]>([]);
-  const [stats, setStats] = useState<ConversionStats | null>(null);
+  const [stats, setStats] = useState<ConversionStats>(getInitialStats());
 
   useEffect(() => {
     const initialStats = getInitialStats();
@@ -57,11 +57,10 @@ export function FileUpload() {
       successRate: isSuccess 
         ? ((currentStats.successfulConversions + 1) / (currentStats.totalConversions + 1)) * 100
         : (currentStats.successfulConversions / (currentStats.totalConversions + 1)) * 100,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      popularConversions: [...currentStats.popularConversions]
     };
 
-    // Save to localStorage
-    updateStats(newStats);
     return newStats;
   };
 
@@ -245,6 +244,8 @@ export function FileUpload() {
             averageTime={stats.averageTime}
             conversionRate={stats.conversionRate}
             conversionTimes={stats.conversionTimes}
+            popularConversions={stats.popularConversions}
+            bySize={stats.bySize}
           />
         </div>
       )}

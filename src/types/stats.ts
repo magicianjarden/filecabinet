@@ -11,4 +11,9 @@ export interface ConversionStats {
   hourlyActivity: Record<string, number>;
   successRate: number;
   lastUpdated: string;
+  popularConversions: Array<{
+    from: string;
+    to: string;
+    count: number;
+  }>;
 } 

@@ -13,7 +13,8 @@ export function getInitialStats(): ConversionStats {
     bySize: {},
     hourlyActivity: {},
     successRate: 0,
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date().toISOString(),
+    popularConversions: [],
   };
 }
 
