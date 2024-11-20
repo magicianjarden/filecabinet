@@ -19,25 +19,24 @@ export const settings = {
     archives: 50 * 1024 * 1024,   // 50MB
     code: 5 * 1024 * 1024         // 5MB
   },
-  conversionTimeouts: {
-    images: 30000,      // 30 seconds
-    documents: 60000,   // 1 minute
-    media: 300000,      // 5 minutes
-    archives: 120000,   // 2 minutes
-    code: 30000        // 30 seconds
-  },
   supportedFormats: {
     documents: {
-      input: ['pdf', 'docx', 'txt', 'rtf', 'md'],
-      output: ['pdf', 'docx', 'txt']
+      input: ['docx', 'txt', 'md', 'rtf', 'pdf'],
+      output: ['txt', 'md']
     },
     images: {
       input: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
       output: ['jpg', 'png', 'webp']
     },
     media: {
-      input: ['mp4', 'mov', 'avi', 'mp3', 'wav'],
-      output: ['mp4', 'mp3']
+      input: [
+        'mp4', 'webm', 'mkv', 'mov', 'avi',
+        'mp3', 'wav', 'aac', 'ogg', 'm4a', 'flac'
+      ],
+      output: [
+        'mp4', 'webm', 'mkv', 'mov', 'avi',
+        'mp3', 'wav', 'aac', 'ogg', 'm4a', 'flac'
+      ]
     },
     archives: {
       input: ['zip'],

@@ -12,15 +12,14 @@ export const imageConverter: Converter = {
     try {
       const image = sharp(input);
       
-      // Convert to the target format
       switch (outputFormat) {
         case 'jpg':
         case 'jpeg':
-          return await image.jpeg({ quality: 85 }).toBuffer();
+          return await image.jpeg().toBuffer();
         case 'png':
-          return await image.png({ quality: 85 }).toBuffer();
+          return await image.png().toBuffer();
         case 'webp':
-          return await image.webp({ quality: 85 }).toBuffer();
+          return await image.webp().toBuffer();
         default:
           throw new Error(`Unsupported output format: ${outputFormat}`);
       }
