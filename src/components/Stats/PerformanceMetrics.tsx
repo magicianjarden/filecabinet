@@ -5,9 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ConversionStats } from '@/types/stats';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Skeleton } from "../ui/skeleton";
 
 interface PerformanceMetricsProps {
-  stats: ConversionStats;
+  averageTime: number;
+  successRate: number;
+  conversionTimes: number[];
+  isLoading?: boolean;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -30,8 +34,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function PerformanceMetrics({ stats }: PerformanceMetricsProps) {
-  const performanceData = stats.conversionTimes.map((time, index) => ({
+export function PerformanceMetrics({ 
+  averageTime, 
+  successRate, 
+  conversionTimes, 
+  isLoading 
+}: PerformanceMetricsProps) {
+  if (isLoading) {
+    return <Skeleton className="h-[300px]" />;
+  }
+
+  const recentConversions = conversionTimes.slice(-100);
+
+  const performanceData = recentConversions.map((time, index) => ({
     name: `Conversion ${index + 1}`,
     time
   }));
@@ -54,7 +69,7 @@ export function PerformanceMetrics({ stats }: PerformanceMetricsProps) {
             Conversion Times
           </h3>
           <Badge variant="secondary" className="text-xs sm:text-sm w-fit">
-            Avg: {stats.averageTime.toFixed(2)}s
+            Avg: {averageTime.toFixed(2)}s
           </Badge>
         </motion.div>
 
@@ -108,7 +123,7 @@ export function PerformanceMetrics({ stats }: PerformanceMetricsProps) {
             >
               <p className="text-sm text-slate-600">Average Time</p>
               <p className="text-2xl font-bold text-slate-900">
-                {stats.averageTime.toFixed(2)}s
+                {averageTime.toFixed(2)}s
               </p>
             </motion.div>
             {/* Add more performance metrics as needed */}

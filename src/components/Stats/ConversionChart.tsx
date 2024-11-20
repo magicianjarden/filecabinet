@@ -1,12 +1,36 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LineChart, Clock } from "lucide-react"
+import { Skeleton } from "../ui/skeleton"
 
 interface ConversionChartProps {
   conversionTimes: number[];
+  isLoading?: boolean;
 }
 
-export function ConversionChart({ conversionTimes }: ConversionChartProps) {
+export function ConversionChart({ conversionTimes, isLoading }: ConversionChartProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Conversion Times
+          </CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[200px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const averageTime = conversionTimes.length > 0
+    ? conversionTimes.reduce((a, b) => a + b, 0) / conversionTimes.length
+    : 0;
+
   const max = Math.max(...conversionTimes, 1);
   const min = Math.min(...conversionTimes, 0);
   const range = max - min;
