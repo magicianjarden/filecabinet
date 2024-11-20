@@ -11,6 +11,12 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
-}
+env: {
+    KV_URL: process.env.KV_URL,
+    KV_REST_API_URL: process.env.KV_REST_API_URL,
+    KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,
+    KV_REST_API_READ_ONLY_TOKEN: process.env.KV_REST_API_READ_ONLY_TOKEN,
+  },
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig;
