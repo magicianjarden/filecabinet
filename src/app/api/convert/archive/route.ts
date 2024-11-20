@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiveConverter } from '@/lib/converters/archive';
 
-export const config = {
-  api: {
-    bodyParser: false,
-    responseLimit: '50mb',
-  },
-};
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,22 +15,6 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json(
         { error: 'No file provided' },
-        { status: 400 }
-      );
-    }
-
-    // Validate input format
-    if (!['zip', 'rar'].includes(inputFormat)) {
-      return NextResponse.json(
-        { error: 'Unsupported input format' },
-        { status: 400 }
-      );
-    }
-
-    // For now, we only support converting to ZIP
-    if (outputFormat !== 'zip') {
-      return NextResponse.json(
-        { error: 'Currently only supports converting to ZIP format' },
         { status: 400 }
       );
     }
