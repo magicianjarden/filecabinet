@@ -41,7 +41,11 @@
     "pdf-parse": "^1.1.1",
     "sonner": "^1.7.0",
     "recharts": "2.12.0",
-    "tailwind-merge": "2.2.1"
+    "tailwind-merge": "2.2.1",
+    "pdf-lib": "1.17.1",
+    "sharp": "0.33.2",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
@@ -65,6 +69,7 @@
     "@types/recharts": "1.8.29",
     "react": "18.2.0",
     "react-dom": "18.2.0"
+    "@types/sharp": "0.31.1"
   },
   "engines": {
     "node": ">=18.0.0"
