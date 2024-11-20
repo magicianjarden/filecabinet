@@ -15,6 +15,7 @@ import { Stats } from '@/components/Stats/Stats';
 import { trackConversion } from '@/lib/utils/stats-service';
 import Link from 'next/link';
 import { BarChart3 } from 'lucide-react';
+import { getGlobalStats } from '@/lib/utils/stats-service';
 
 export function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -25,116 +26,65 @@ export function FileUpload() {
   const [history, setHistory] = useState<ConversionRecord[]>([]);
   const [stats, setStats] = useState<ConversionStats>(getInitialStats());
 
-  useEffect(() => {
-    const initialStats = getInitialStats();
-    setStats(initialStats);
-  }, []);
-
-  const updateStatsAfterConversion = (
-    currentStats: ConversionStats,
-    isSuccess: boolean,
-    file: File,
-    conversionTime?: number
-  ): ConversionStats => {
-    const newStats: ConversionStats = {
-      ...currentStats,
-      totalConversions: currentStats.totalConversions + 1,
-      successfulConversions: isSuccess ? currentStats.successfulConversions + 1 : currentStats.successfulConversions,
-      failedConversions: !isSuccess ? currentStats.failedConversions + 1 : currentStats.failedConversions,
-      totalSize: currentStats.totalSize + file.size,
-      averageTime: conversionTime 
-        ? (currentStats.averageTime * currentStats.totalConversions + conversionTime) / (currentStats.totalConversions + 1)
-        : currentStats.averageTime,
-      conversionRate: isSuccess 
-        ? ((currentStats.successfulConversions + 1) / (currentStats.totalConversions + 1)) * 100
-        : (currentStats.successfulConversions / (currentStats.totalConversions + 1)) * 100,
-      conversionTimes: conversionTime 
-        ? [...currentStats.conversionTimes, conversionTime]
-        : currentStats.conversionTimes,
-      byFormat: { ...currentStats.byFormat },
-      bySize: { ...currentStats.bySize },
-      hourlyActivity: { ...currentStats.hourlyActivity },
-      successRate: isSuccess 
-        ? ((currentStats.successfulConversions + 1) / (currentStats.totalConversions + 1)) * 100
-        : (currentStats.successfulConversions / (currentStats.totalConversions + 1)) * 100,
-      lastUpdated: new Date().toISOString(),
-      popularConversions: [...currentStats.popularConversions]
-    };
-
-    return newStats;
+  const fetchAndUpdateStats = async () => {
+    try {
+      const globalStats = await getGlobalStats();
+      setStats(globalStats);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file || !targetFormat) return;
+  useEffect(() => {
+    // Fetch initial stats
+    fetchAndUpdateStats();
 
-    const startTime = performance.now();
-    setStatus('processing');
-    setProgress(0);
-    setError(null);
+    // Set up periodic refresh (every 30 seconds)
+    const interval = setInterval(fetchAndUpdateStats, 30000);
 
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleStatsUpdate = async (
+    file: File,
+    success: boolean,
+    conversionTime?: number
+  ) => {
     try {
-      // Simulate file conversion with progress
-      for (let i = 0; i <= 100; i += 10) {
-        setProgress(i);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-
-      const endTime = performance.now();
-      const conversionTime = (endTime - startTime) / 1000; // Convert to seconds
-
-      const newStats = updateStatsAfterConversion(
-        stats || getInitialStats(),
-        true,
-        file,
-        conversionTime
-      );
-      
-      setStats(newStats);
-      setStatus('completed');
-
-      // Add to history
-      const newRecord: ConversionRecord = {
-        id: Date.now().toString(),
-        originalName: file.name,
-        convertedName: `${file.name.split('.')[0]}.${targetFormat}`,
-        originalFormat: file.name.split('.').pop() || '',
-        convertedFormat: targetFormat,
-        timestamp: new Date(),
-        downloadUrl: URL.createObjectURL(file),
-        type: 'document', // You might want to determine this based on the file type
-      };
-
-      setHistory(prev => [newRecord, ...prev]);
-
       await trackConversion(
-        'document', // or determine based on file type
-        file.name.split('.').pop() || 'unknown',
-        targetFormat,
+        'unknown',
+        'unknown',
+        file.type,
         file.size,
-        true,
-        conversionTime
+        success,
+        conversionTime || 0
       );
-    } catch (err) {
-      const newStats = updateStatsAfterConversion(
-        stats || getInitialStats(),
-        false,
-        file
-      );
-      
-      setStats(newStats);
-      setStatus('failed');
-      setError(err instanceof Error ? err.message : 'An error occurred');
-
-      await trackConversion(
-        'document', // or determine based on file type
-        file.name.split('.').pop() || 'unknown',
-        targetFormat,
-        file.size,
-        false,
-        0
-      );
+      const globalStats = await getGlobalStats();
+      setStats(globalStats);
+    } catch (error) {
+      console.error('Error updating stats:', error);
     }
+  };
+
+  const handleConversion = async (file: File) => {
+    const startTime = Date.now();
+    try {
+      // Your existing conversion logic here
+      
+      const endTime = Date.now();
+      const conversionTime = (endTime - startTime) / 1000;
+      await handleStatsUpdate(file, true, conversionTime);
+    } catch (error) {
+      await handleStatsUpdate(file, false);
+      console.error('Conversion failed:', error);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    // Your existing form submission logic here
+    // When you have the file, call handleConversion(file)
   };
 
   return (
@@ -243,9 +193,6 @@ export function FileUpload() {
             totalSize={stats.totalSize}
             averageTime={stats.averageTime}
             conversionRate={stats.conversionRate}
-            conversionTimes={stats.conversionTimes}
-            popularConversions={stats.popularConversions}
-            bySize={stats.bySize}
           />
         </div>
       )}

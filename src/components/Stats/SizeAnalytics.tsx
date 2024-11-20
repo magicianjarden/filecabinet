@@ -2,18 +2,21 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import { HardDrive, ArrowUp, ArrowDown } from 'lucide-react';
 import { ConversionStats } from '@/types/stats';
 import { formatFileSize } from '@/lib/utils/format';
+import { Progress } from "@/components/ui/progress"
 
 // Define color constants
 const COLORS = ['#16a34a', '#2563eb', '#9333ea', '#c026d3', '#e11d48', '#ea580c'];
 
-interface SizeAnalyticsProps {
-  stats: ConversionStats;
+// Update the interface to match the props we're passing
+export interface SizeAnalyticsProps {
+  bySize: Record<string, number>;
+  totalSize: number;
 }
 
 interface SizeDataItem {
@@ -38,16 +41,18 @@ const CustomTooltip = ({ name, percentage }: TooltipProps) => {
   );
 };
 
-export function SizeAnalytics({ stats }: SizeAnalyticsProps) {
+export function SizeAnalytics({ bySize, totalSize }: SizeAnalyticsProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const sizeData: SizeDataItem[] = Object.entries(stats.bySize)
+  const sizeData: SizeDataItem[] = Object.entries(bySize)
     .map(([range, count]) => ({
       name: range,
       value: count,
-      percentage: (count / stats.totalConversions) * 100
+      percentage: (count / totalSize) * 100
     }))
     .sort((a, b) => b.value - a.value);
+
+  const total = Object.values(bySize).reduce((sum, count) => sum + count, 0);
 
   return (
     <motion.div 

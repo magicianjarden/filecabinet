@@ -98,11 +98,11 @@ export default function StatsPage() {
           </TabsContent>
 
           <TabsContent value="formats">
-            <FormatAnalytics stats={stats} />
+            <FormatAnalytics popularConversions={stats.popularConversions} />
           </TabsContent>
 
           <TabsContent value="sizes">
-            <SizeAnalytics stats={stats} />
+            <SizeAnalytics bySize={stats.bySize} totalSize={stats.totalSize} />
           </TabsContent>
 
           <TabsContent value="performance">
