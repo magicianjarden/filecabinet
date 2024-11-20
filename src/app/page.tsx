@@ -9,7 +9,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 space-y-16">
+      <main className="container mx-auto px-4 py-8 space-y-12">
         {/* File Upload Section */}
         <section>
           <div className="max-w-4xl mx-auto">

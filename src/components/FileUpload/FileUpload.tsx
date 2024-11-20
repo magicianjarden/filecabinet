@@ -12,6 +12,9 @@ import { ConversionRecord, ConversionStats } from '@/types';
 import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@/lib/constants';
 import { getInitialStats, updateStats } from '@/lib/utils/stats';
 import { Stats } from '@/components/Stats/Stats';
+import { updateGlobalStats } from '@/lib/utils/stats-service';
+import Link from 'next/link';
+import { BarChart3 } from 'lucide-react';
 
 export function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -23,8 +26,44 @@ export function FileUpload() {
   const [stats, setStats] = useState<ConversionStats | null>(null);
 
   useEffect(() => {
-    setStats(getInitialStats());
+    const initialStats = getInitialStats();
+    setStats(initialStats);
   }, []);
+
+  const updateStatsAfterConversion = (
+    currentStats: ConversionStats,
+    isSuccess: boolean,
+    file: File,
+    conversionTime?: number
+  ): ConversionStats => {
+    const newStats: ConversionStats = {
+      ...currentStats,
+      totalConversions: currentStats.totalConversions + 1,
+      successfulConversions: isSuccess ? currentStats.successfulConversions + 1 : currentStats.successfulConversions,
+      failedConversions: !isSuccess ? currentStats.failedConversions + 1 : currentStats.failedConversions,
+      totalSize: currentStats.totalSize + file.size,
+      averageTime: conversionTime 
+        ? (currentStats.averageTime * currentStats.totalConversions + conversionTime) / (currentStats.totalConversions + 1)
+        : currentStats.averageTime,
+      conversionRate: isSuccess 
+        ? ((currentStats.successfulConversions + 1) / (currentStats.totalConversions + 1)) * 100
+        : (currentStats.successfulConversions / (currentStats.totalConversions + 1)) * 100,
+      conversionTimes: conversionTime 
+        ? [...currentStats.conversionTimes, conversionTime]
+        : currentStats.conversionTimes,
+      byFormat: { ...currentStats.byFormat },
+      bySize: { ...currentStats.bySize },
+      hourlyActivity: { ...currentStats.hourlyActivity },
+      successRate: isSuccess 
+        ? ((currentStats.successfulConversions + 1) / (currentStats.totalConversions + 1)) * 100
+        : (currentStats.successfulConversions / (currentStats.totalConversions + 1)) * 100,
+      lastUpdated: new Date().toISOString()
+    };
+
+    // Save to localStorage
+    updateStats(newStats);
+    return newStats;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,12 +84,11 @@ export function FileUpload() {
       const endTime = performance.now();
       const conversionTime = (endTime - startTime) / 1000; // Convert to seconds
 
-      const newStats = updateStats(
-        file.size,
-        conversionTime,
-        file.name.split('.').pop() || '',
-        targetFormat,
-        true // success
+      const newStats = updateStatsAfterConversion(
+        stats || getInitialStats(),
+        true,
+        file,
+        conversionTime
       );
       
       setStats(newStats);
@@ -69,18 +107,30 @@ export function FileUpload() {
       };
 
       setHistory(prev => [newRecord, ...prev]);
+
+      await updateGlobalStats({
+        success: true,
+        size: file.size,
+        time: conversionTime,
+        format: targetFormat
+      });
     } catch (err) {
-      const newStats = updateStats(
-        file.size,
-        0,
-        file.name.split('.').pop() || '',
-        targetFormat,
-        false // failed
+      const newStats = updateStatsAfterConversion(
+        stats || getInitialStats(),
+        false,
+        file
       );
       
       setStats(newStats);
       setStatus('failed');
       setError(err instanceof Error ? err.message : 'An error occurred');
+
+      await updateGlobalStats({
+        success: false,
+        size: file.size,
+        time: 0,
+        format: targetFormat
+      });
     }
   };
 
@@ -156,17 +206,34 @@ export function FileUpload() {
       {stats && (
         <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
           <div className="space-y-2 mb-6">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xl font-semibold text-slate-900">
-                Global Statistics
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Sitewide
-              </span>
+            <div className="flex items-center justify-between gap-10">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Global Statistics
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Sitewide
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600 mt-1">
+                  Overall platform performance and conversion metrics
+                </p>
+              </div>
+              
+              <Link
+                href="/stats"
+                className="group flex items-center gap-2.5 px-3.5 py-2 rounded-lg border border-green-100 bg-white hover:bg-green-50 transition-colors shrink-0 ml-auto"
+              >
+                <BarChart3 className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-600">
+                  View Analytics
+                </span>
+                <span className="text-green-600 transition-transform group-hover:translate-x-0.5">
+                  →
+                </span>
+              </Link>
             </div>
-            <p className="text-sm text-slate-600">
-              Overall platform performance and conversion metrics
-            </p>
           </div>
           <Stats
             totalConversions={stats.totalConversions}
