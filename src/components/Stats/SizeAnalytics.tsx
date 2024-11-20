@@ -22,25 +22,20 @@ interface SizeDataItem {
   percentage: number;
 }
 
+interface TooltipProps {
+  name: string;
+  percentage: number;
+  // Add any other properties that might be used
+}
+
 // Custom tooltip component
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-white/95 backdrop-blur-sm border border-slate-200 rounded-lg shadow-lg p-3">
-        <p className="text-sm font-medium text-slate-900 mb-1">{data.name}</p>
-        <div className="space-y-1 text-xs">
-          <p className="text-slate-600">
-            Count: <span className="font-medium text-slate-900">{data.value.toLocaleString()}</span>
-          </p>
-          <p className="text-slate-600">
-            Percentage: <span className="font-medium text-slate-900">{data.percentage.toFixed(1)}%</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
-  return null;
+const CustomTooltip = ({ name, percentage }: TooltipProps) => {
+  return (
+    <div className="bg-background border rounded-lg shadow-lg p-2">
+      <p className="text-sm font-medium">{name}</p>
+      <p className="text-sm">{percentage.toFixed(1)}%</p>
+    </div>
+  );
 };
 
 export function SizeAnalytics({ stats }: SizeAnalyticsProps) {
@@ -108,7 +103,7 @@ export function SizeAnalytics({ stats }: SizeAnalyticsProps) {
                       />
                     ))}
                   </Pie>
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip name={''} percentage={0} />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>

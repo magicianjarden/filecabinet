@@ -20,6 +20,8 @@
     "@radix-ui/react-slot": "1.0.2",
     "@radix-ui/react-tabs": "^1.1.1",
     "@radix-ui/react-tooltip": "1.0.7",
+    "@types/recharts": "^1.8.29",
+    "@types/sharp": "^0.31.1",
     "@upstash/ratelimit": "1.0.0",
     "@upstash/redis": "1.28.4",
     "@vercel/kv": "^3.0.0",
@@ -38,7 +40,10 @@
     "next": "14.2.18",
     "next-swagger-doc": "0.4.0",
     "papaparse": "^5.4.1",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "recharts": "^2.13.3",
+    "sharp": "^0.33.5",
+    "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
