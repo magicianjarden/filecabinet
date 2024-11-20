@@ -13,42 +13,38 @@ type SupportedFormatsType = {
 
 export const settings = {
   maxFileSize: {
-    images: 1024 * 1024 * 10,     // 10MB
-    documents: 1024 * 1024 * 20,   // 20MB
-    media: 1024 * 1024 * 100,     // 100MB
-    archives: 1024 * 1024 * 200,   // 200MB
-    code: 1024 * 1024 * 5,        // 5MB
-  } as const,
-
+    images: 10 * 1024 * 1024,     // 10MB
+    documents: 25 * 1024 * 1024,  // 25MB
+    media: 100 * 1024 * 1024,     // 100MB
+    archives: 50 * 1024 * 1024,   // 50MB
+    code: 5 * 1024 * 1024         // 5MB
+  },
+  conversionTimeouts: {
+    images: 30000,      // 30 seconds
+    documents: 60000,   // 1 minute
+    media: 300000,      // 5 minutes
+    archives: 120000,   // 2 minutes
+    code: 30000        // 30 seconds
+  },
   supportedFormats: {
     documents: {
-      input: ['pdf', 'docx', 'doc', 'rtf', 'txt', 'odt', 'pages', 'epub', 'md', 'tex'],
-      output: ['pdf', 'docx', 'txt', 'md']
+      input: ['pdf', 'docx', 'txt', 'rtf', 'md'],
+      output: ['pdf', 'docx', 'txt']
     },
     images: {
-      input: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'tiff', 'heic', 'raw'],
-      output: ['jpg', 'png', 'webp', 'gif']
+      input: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+      output: ['jpg', 'png', 'webp']
     },
     media: {
-      input: [
-        // Video
-        'mp4', 'mov', 'avi', 'wmv', 'flv', 'mkv', 'webm', 'm4v', '3gp',
-        // Audio
-        'mp3', 'wav', 'ogg', 'aac', 'wma', 'flac', 'm4a', 'aiff'
-      ],
-      output: [
-        // Video
-        'mp4', 'webm',
-        // Audio
-        'mp3', 'wav'
-      ]
+      input: ['mp4', 'mov', 'avi', 'mp3', 'wav'],
+      output: ['mp4', 'mp3']
     },
     archives: {
-      input: ['zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'iso', 'cab'],
+      input: ['zip'],
       output: ['zip']
     },
     code: {
-      input: ['json', 'yaml', 'yml', 'xml', 'csv', 'toml', 'ini', 'properties'],
+      input: ['json', 'yaml', 'yml', 'xml', 'csv'],
       output: ['json', 'yaml', 'xml', 'csv']
     }
   } satisfies SupportedFormatsType

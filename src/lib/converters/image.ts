@@ -1,43 +1,32 @@
-import gm from 'gm';
-import { promisify } from 'util';
+import sharp from 'sharp';
+import { Converter } from '@/types/converters';
 import { settings } from '@/config/settings';
-import { ConversionResult, ConversionOptions, ConversionError } from './types';
-import { getMimeType } from '../utils/mime-types';
 
-export async function convertImage(
-  input: Buffer,
-  inputFormat: string,
-  outputFormat: string,
-  options: ConversionOptions = {}
-): Promise<ConversionResult> {
-  return new Promise((resolve) => {
-    const image = gm(input);
-
-    // Apply conversion options
-    if (options.quality) {
-      image.quality(options.quality);
-    }
-    if (options.resolution) {
-      const [width, height] = options.resolution.split('x');
-      image.resize(parseInt(width), parseInt(height));
-    }
-
-    // Convert the image
-    image.toBuffer(outputFormat.replace('.', ''), (err: Error | null, buffer: Buffer) => {
-      if (err) {
-        console.error('Image conversion error:', err);
-        resolve({
-          success: false,
-          error: err.message || 'Failed to convert image'
-        });
-        return;
+export const imageConverter: Converter = {
+  name: 'Image Converter',
+  description: 'Convert between image formats',
+  inputFormats: settings.supportedFormats.images.input,
+  outputFormats: settings.supportedFormats.images.output,
+  
+  async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
+    try {
+      const image = sharp(input);
+      
+      // Convert to the target format
+      switch (outputFormat) {
+        case 'jpg':
+        case 'jpeg':
+          return await image.jpeg({ quality: 85 }).toBuffer();
+        case 'png':
+          return await image.png({ quality: 85 }).toBuffer();
+        case 'webp':
+          return await image.webp({ quality: 85 }).toBuffer();
+        default:
+          throw new Error(`Unsupported output format: ${outputFormat}`);
       }
-
-      resolve({
-        success: true,
-        data: buffer,
-        mimeType: getMimeType(outputFormat)
-      });
-    });
-  });
-} 
+    } catch (error) {
+      console.error('Image conversion error:', error);
+      throw new Error('Failed to convert image');
+    }
+  }
+}; 

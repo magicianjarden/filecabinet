@@ -1,133 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { convertDocument } from '@/lib/converters/document';
-import { parseFormData } from '@/lib/utils/upload-handler';
-import { settings } from '@/config/settings';
-import { ratelimit, getClientIp } from '@/lib/utils/rate-limit';
-import { ProgressTracker } from '@/lib/utils/progress-tracker';
-import { handleError } from '@/lib/utils/error-handler';
-import { 
-  ValidationError, 
-  RateLimitError, 
-  FileSizeError,
-  FileTypeError,
-  ConversionError 
-} from '@/lib/errors/custom-errors';
-import { nanoid } from 'nanoid';
-import { updateStats } from '@/lib/redis'
-import { 
-  DocumentInputFormat, 
-  DocumentOutputFormat 
-} from '@/types/formats';
-import { 
-  normalizeFormat,
-  isSupportedInputFormat,
-  isSupportedOutputFormat
-} from '@/config/settings';
+import { documentConverter } from '@/lib/converters/document';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
-export async function POST(req: NextRequest) {
-  const startTime = Date.now()
-  
+export async function POST(request: NextRequest) {
   try {
-    // Check rate limit
-    const ip = getClientIp(req);
-    const { success: rateLimitSuccess } = await ratelimit.limit(ip);
-    
-    if (!rateLimitSuccess) {
-      throw new RateLimitError();
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const inputFormat = formData.get('inputFormat') as string;
+    const outputFormat = formData.get('outputFormat') as string;
+
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
+        { status: 400 }
+      );
     }
 
-    // Generate unique job ID
-    const jobId = nanoid();
-    const progress = new ProgressTracker(jobId);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const result = await documentConverter.convert(buffer, inputFormat, outputFormat);
 
-    // Initialize progress
-    await progress.updateProgress({
-      progress: 0,
-      status: 'pending',
-      message: 'Starting conversion...'
-    });
-
-    const result = await parseFormData(req);
-    
-    if (!result.success) {
-      await progress.updateProgress({
-        progress: 0,
-        status: 'failed',
-        message: result.error
-      });
-      throw new ValidationError(result.error);
-    }
-
-    const { buffer, fileType, targetFormat, originalName } = result;
-
-    // Normalize formats by removing dots and converting to lowercase
-    const sourceFormat = normalizeFormat(fileType) as DocumentInputFormat;
-    const outputFormat = normalizeFormat(targetFormat) as DocumentOutputFormat;
-
-    // Validate file size
-    if (buffer.length > settings.maxFileSize.documents) {
-      await progress.updateProgress({
-        progress: 0,
-        status: 'failed',
-        message: 'File too large'
-      });
-      throw new FileSizeError('File exceeds maximum size limit');
-    }
-
-    // Validate formats
-    if (!isSupportedInputFormat('documents', sourceFormat)) {
-      throw new FileTypeError('Unsupported document format');
-    }
-
-    if (!isSupportedOutputFormat('documents', outputFormat)) {
-      throw new FileTypeError('Unsupported target format');
-    }
-
-    // Update progress
-    await progress.updateProgress({
-      progress: 40,
-      status: 'processing',
-      message: 'Converting file...'
-    });
-
-    const conversion = await convertDocument(buffer, sourceFormat, outputFormat);
-
-    if (!conversion.success) {
-      await progress.updateProgress({
-        progress: 0,
-        status: 'failed',
-        message: conversion.error || 'Conversion failed'
-      });
-      throw new ConversionError(conversion.error || 'Failed to convert document');
-    }
-
-    // Update stats after successful conversion
-    const conversionTime = (Date.now() - startTime) / 1000
-    await updateStats(targetFormat, buffer.length, conversionTime)
-
-    // Update progress
-    await progress.updateProgress({
-      progress: 100,
-      status: 'completed',
-      message: 'Conversion complete'
-    });
-
-    return new Response(conversion.data, {
+    return new NextResponse(result, {
       headers: {
-        'Content-Type': conversion.mimeType || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${originalName.replace(
-          new RegExp(fileType + '$'), 
-          targetFormat
-        )}"`,
-        'X-Job-ID': jobId
+        'Content-Type': 'application/octet-stream',
+        'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
       },
     });
-
   } catch (error) {
-    return handleError(error);
+    console.error('Document conversion error:', error);
+    return NextResponse.json(
+      { error: 'Failed to convert file' },
+      { status: 500 }
+    );
   }
 } 
