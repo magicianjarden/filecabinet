@@ -12,7 +12,7 @@ import { ConversionRecord, ConversionStats } from '@/types';
 import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@/lib/constants';
 import { getInitialStats, updateStats } from '@/lib/utils/stats';
 import { Stats } from '@/components/Stats/Stats';
-import { updateGlobalStats } from '@/lib/utils/stats-service';
+import { trackConversion } from '@/lib/utils/stats-service';
 import Link from 'next/link';
 import { BarChart3 } from 'lucide-react';
 
@@ -108,12 +108,14 @@ export function FileUpload() {
 
       setHistory(prev => [newRecord, ...prev]);
 
-      await updateGlobalStats({
-        success: true,
-        size: file.size,
-        time: conversionTime,
-        format: targetFormat
-      });
+      await trackConversion(
+        'document', // or determine based on file type
+        file.name.split('.').pop() || 'unknown',
+        targetFormat,
+        file.size,
+        true,
+        conversionTime
+      );
     } catch (err) {
       const newStats = updateStatsAfterConversion(
         stats || getInitialStats(),
@@ -125,12 +127,14 @@ export function FileUpload() {
       setStatus('failed');
       setError(err instanceof Error ? err.message : 'An error occurred');
 
-      await updateGlobalStats({
-        success: false,
-        size: file.size,
-        time: 0,
-        format: targetFormat
-      });
+      await trackConversion(
+        'document', // or determine based on file type
+        file.name.split('.').pop() || 'unknown',
+        targetFormat,
+        file.size,
+        false,
+        0
+      );
     }
   };
 

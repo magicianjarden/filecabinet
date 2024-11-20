@@ -1,80 +1,6 @@
 import { kv } from '@vercel/kv';
 import { ConversionStats } from '@/types/stats';
 
-const STATS_KEY = 'conversion_stats';
-
-interface ConversionUpdate {
-  success: boolean;
-  size: number;
-  time: number;
-  format: string;
-}
-
-export async function updateGlobalStats(newConversion: ConversionUpdate): Promise<void> {
-  try {
-    const currentStats = await getGlobalStats();
-    const hour = new Date().getHours().toString();
-
-    // Prepare the updated stats
-    const updatedStats: ConversionStats = {
-      ...currentStats,
-      totalConversions: currentStats.totalConversions + 1,
-      successfulConversions: currentStats.successfulConversions + (newConversion.success ? 1 : 0),
-      failedConversions: currentStats.failedConversions + (newConversion.success ? 0 : 1),
-      totalSize: currentStats.totalSize + newConversion.size,
-      averageTime: (currentStats.averageTime * currentStats.totalConversions + newConversion.time) / (currentStats.totalConversions + 1),
-      byFormat: {
-        ...currentStats.byFormat,
-        [newConversion.format]: (currentStats.byFormat[newConversion.format] || 0) + 1
-      },
-      hourlyActivity: {
-        ...currentStats.hourlyActivity,
-        [hour]: (currentStats.hourlyActivity[hour] || 0) + 1
-      },
-      successRate: ((currentStats.successfulConversions + (newConversion.success ? 1 : 0)) / (currentStats.totalConversions + 1)) * 100,
-      lastUpdated: new Date().toISOString()
-    };
-
-    // Update stats atomically
-    await kv.set(STATS_KEY, JSON.stringify(updatedStats));
-
-  } catch (error) {
-    console.error('Error updating stats:', error);
-    throw error;
-  }
-}
-
-export async function getGlobalStats(): Promise<ConversionStats> {
-  try {
-    const stats = await kv.get<string>(STATS_KEY);
-    if (stats) {
-      return JSON.parse(stats) as ConversionStats;
-    }
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-  }
-
-  return createEmptyStats();
-}
-
-function createEmptyStats(): ConversionStats {
-  return {
-    totalConversions: 0,
-    successfulConversions: 0,
-    failedConversions: 0,
-    totalSize: 0,
-    averageTime: 0,
-    conversionRate: 0,
-    conversionTimes: [],
-    byFormat: {},
-    bySize: {},
-    hourlyActivity: {},
-    successRate: 0,
-    lastUpdated: new Date().toISOString()
-  };
-}
-
-// Helper function to calculate size buckets
 function getSizeBucket(size: number): string {
   const MB = 1024 * 1024;
   if (size < MB) return '< 1MB';
@@ -84,11 +10,103 @@ function getSizeBucket(size: number): string {
   return '> 50MB';
 }
 
-// Update size stats
-function updateSizeStats(currentSizeStats: Record<string, number>, newSize: number): Record<string, number> {
-  const bucket = getSizeBucket(newSize);
+export async function trackConversion(
+  type: string,
+  inputFormat: string,
+  outputFormat: string,
+  fileSize: number,
+  success = true,
+  duration = 0
+) {
+  const timestamp = Date.now();
+  const date = new Date().toISOString().split('T')[0];
+  const hour = new Date().getHours();
+  
+  await Promise.all([
+    // Increment total conversions
+    kv.hincrby('stats:totals', 'conversions', 1),
+    kv.hincrby('stats:totals', success ? 'successful' : 'failed', 1),
+    kv.hincrby('stats:totals', 'total_size', fileSize),
+    
+    // Track format combinations
+    kv.hincrby(`stats:formats:${type}`, `${inputFormat}_to_${outputFormat}`, 1),
+    
+    // Store conversion event
+    kv.lpush('stats:recent', {
+      timestamp,
+      type,
+      inputFormat,
+      outputFormat,
+      fileSize,
+      duration,
+      success
+    }),
+    
+    // Update daily and hourly stats
+    kv.hincrby(`stats:daily:${date}`, type, 1),
+    kv.hincrby('stats:hourly', hour.toString(), 1),
+    
+    // Track size distribution
+    kv.hincrby('stats:sizes', getSizeBucket(fileSize), 1),
+    
+    // Track duration
+    kv.lpush('stats:durations', duration)
+  ]);
+}
+
+export async function getGlobalStats(): Promise<ConversionStats> {
+  const [
+    totals,
+    formats,
+    sizes,
+    hourly,
+    durations
+  ] = await Promise.all([
+    kv.hgetall('stats:totals') as Promise<Record<string, number>>,
+    kv.hgetall('stats:formats') as Promise<Record<string, number>>,
+    kv.hgetall('stats:sizes') as Promise<Record<string, number>>,
+    kv.hgetall('stats:hourly') as Promise<Record<string, number>>,
+    kv.lrange('stats:durations', 0, 1000) as Promise<number[]>
+  ]);
+
+  const totalConversions = totals?.conversions || 0;
+  const successfulConversions = totals?.successful || 0;
+  const totalSize = totals?.total_size || 0;
+
   return {
-    ...currentSizeStats,
-    [bucket]: (currentSizeStats[bucket] || 0) + 1
+    totalConversions,
+    successfulConversions,
+    failedConversions: totalConversions - successfulConversions,
+    totalSize,
+    averageTime: durations?.length 
+      ? durations.reduce((a, b) => a + b, 0) / durations.length 
+      : 0,
+    conversionRate: totalConversions > 0 
+      ? (successfulConversions / totalConversions) * 100 
+      : 0,
+    conversionTimes: durations || [],
+    byFormat: formats || {},
+    bySize: sizes || {},
+    hourlyActivity: hourly || {},
+    successRate: totalConversions > 0 
+      ? (successfulConversions / totalConversions) * 100 
+      : 0,
+    lastUpdated: new Date().toISOString(),
   };
-} 
+}
+
+export async function updateGlobalStats(data: {
+  success: boolean;
+  size: number;
+  time: number;
+  format: string;
+}): Promise<void> {
+  await trackConversion(
+    'unknown',  // type
+    'unknown',  // inputFormat
+    data.format, // outputFormat
+    data.size,   // fileSize
+    data.success, // success
+    data.time    // duration
+  );
+}

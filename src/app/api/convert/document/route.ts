@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { documentConverter } from '@/lib/converters/document';
+import { trackConversion } from '@/lib/utils/stats-service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,9 @@ export async function POST(request: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await documentConverter.convert(buffer, inputFormat, outputFormat);
+
+    // Track conversion stats
+    await trackConversion('document', inputFormat, outputFormat, buffer.length);
 
     return new NextResponse(result, {
       headers: {
