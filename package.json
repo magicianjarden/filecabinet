@@ -38,12 +38,7 @@
     "next": "14.2.18",
     "next-swagger-doc": "0.4.0",
     "papaparse": "^5.4.1",
-    "pdf-parse": "^1.1.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "recharts": "^2.13.3",
-    "sharp": "^0.33.0",
-    "tailwind-merge": "^2.5.4"
+    "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.10",
@@ -67,5 +62,10 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "overrides": {
+    "pdf-parse": {
+      "debug": "^4.3.4"
+    }
   }
 }

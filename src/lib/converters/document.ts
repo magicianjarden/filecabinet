@@ -5,6 +5,14 @@ import pdfParse from 'pdf-parse';
 import { marked } from 'marked';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 
+// PDF parsing options
+const PDF_PARSE_OPTIONS = {
+  // Disable internal file loading
+  disableCopyPaste: true,
+  // Max pages to parse (0 = all pages)
+  max: 0
+};
+
 export const documentConverter: Converter = {
   name: 'Document Converter',
   description: 'Convert between document formats',
@@ -23,8 +31,13 @@ export const documentConverter: Converter = {
           break;
 
         case 'pdf':
-          const pdfData = await pdfParse(input);
-          text = pdfData.text;
+          try {
+            const pdfData = await pdfParse(input);
+            text = pdfData.text;
+          } catch (pdfError) {
+            console.error('PDF parsing error:', pdfError);
+            throw new Error('Failed to parse PDF file');
+          }
           break;
 
         case 'md':
