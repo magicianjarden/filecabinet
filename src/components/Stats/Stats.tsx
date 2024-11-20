@@ -9,6 +9,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import { formatFileSize } from '@/lib/utils/format';
+import { ConversionChart } from './ConversionChart';
 
 interface StatsProps {
   totalConversions: number;
@@ -41,95 +42,103 @@ export function Stats({
   };
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-    >
-      <motion.div variants={item}>
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
-            <div className="rounded-lg p-2 bg-blue-100/50">
-              <Activity className="h-4 w-4 text-blue-600" />
+    <div className="space-y-6">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+      >
+        <motion.div variants={item}>
+          <Card className="p-6 border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Activity className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Conversions</p>
+                <motion.h2 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {totalConversions.toLocaleString()}
+                </motion.h2>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-slate-600">Total Conversions</h3>
-              <motion.p 
-                className="text-2xl font-semibold text-slate-900"
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                {totalConversions.toLocaleString()}
-              </motion.p>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Card className="p-6 border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Clock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Average Time</p>
+                <motion.h2 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {averageTime.toFixed(2)}s
+                </motion.h2>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Card className="p-6 border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <HardDrive className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Total Size</p>
+                <motion.h2 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {formatFileSize(totalSize)}
+                </motion.h2>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+
+        <motion.div variants={item}>
+          <Card className="p-6 border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center space-x-4">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Success Rate</p>
+                <motion.h2 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {conversionRate.toFixed(1)}%
+                </motion.h2>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
       </motion.div>
 
-      <motion.div variants={item}>
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
-            <div className="rounded-lg p-2 bg-green-100/50">
-              <Clock className="h-4 w-4 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-slate-600">Average Time</h3>
-              <motion.p 
-                className="text-2xl font-semibold text-slate-900"
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                {averageTime.toFixed(2)}s
-              </motion.p>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-
-      <motion.div variants={item}>
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
-            <div className="rounded-lg p-2 bg-purple-100/50">
-              <HardDrive className="h-4 w-4 text-purple-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-slate-600">Total Size</h3>
-              <motion.p 
-                className="text-2xl font-semibold text-slate-900"
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                {formatFileSize(totalSize)}
-              </motion.p>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-
-      <motion.div variants={item}>
-        <Card className="p-4 hover:shadow-md transition-shadow">
-          <div className="flex flex-row sm:flex-col items-center sm:items-start gap-3 sm:gap-2">
-            <div className="rounded-lg p-2 bg-yellow-100/50">
-              <CheckCircle className="h-4 w-4 text-yellow-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-slate-600">Success Rate</h3>
-              <motion.p 
-                className="text-2xl font-semibold text-slate-900"
-                initial={{ scale: 0.5 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                {conversionRate.toFixed(1)}%
-              </motion.p>
-            </div>
-          </div>
-        </Card>
-      </motion.div>
-    </motion.div>
+      {/* Conversion Chart */}
+      <Card className="p-6 border border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <h3 className="text-sm font-medium text-muted-foreground mb-4">Conversion Times</h3>
+        <ConversionChart conversionTimes={conversionTimes} />
+      </Card>
+    </div>
   );
 } 
