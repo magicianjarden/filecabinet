@@ -13,24 +13,29 @@ interface ProgressBarProps {
 export function ProgressBar({ progress, status, error }: ProgressBarProps) {
   return (
     <div className="space-y-2">
-      <Progress 
-        value={progress} 
-        className="h-2 border border-green-200"
-        indicatorClassName="bg-gradient-to-r from-green-600 to-green-500"
-      />
       <div className="flex justify-between text-sm">
-        <span className={cn(
-          "font-medium",
-          status === 'completed' && "text-green-600",
-          status === 'failed' && "text-red-600",
-          status === 'processing' && "text-green-600"
-        )}>
-          {status === 'completed' && 'Conversion complete'}
-          {status === 'failed' && error}
+        <span>
           {status === 'processing' && 'Converting...'}
+          {status === 'completed' && 'Conversion complete!'}
+          {status === 'failed' && 'Conversion failed'}
         </span>
-        <span className="text-slate-500">{progress}%</span>
+        <span>{progress}%</span>
       </div>
+      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div 
+          className={`h-full transition-all duration-200 ${
+            status === 'failed' 
+              ? 'bg-red-500' 
+              : status === 'completed'
+              ? 'bg-green-500'
+              : 'bg-blue-500'
+          }`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+      {error && (
+        <p className="text-sm text-red-500 mt-1">{error}</p>
+      )}
     </div>
   );
 } 

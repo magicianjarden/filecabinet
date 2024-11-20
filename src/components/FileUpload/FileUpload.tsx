@@ -16,6 +16,7 @@ import { trackConversion } from '@/lib/utils/stats-service';
 import Link from 'next/link';
 import { BarChart3 } from 'lucide-react';
 import { getGlobalStats } from '@/lib/utils/stats-service';
+import { Badge } from "@/components/ui/badge";
 
 export function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
@@ -68,23 +69,102 @@ export function FileUpload() {
   };
 
   const handleConversion = async (file: File) => {
+    console.log('Starting conversion', { file, targetFormat });
     const startTime = Date.now();
+    setStatus('processing');
+    setProgress(0);
+    setError(null);
+    
+    let progressInterval: NodeJS.Timeout | undefined;
+    
     try {
-      // Your existing conversion logic here
+      progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            return prev;
+          }
+          return prev + 5;
+        });
+      }, 200);
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('targetFormat', targetFormat);
+
+      const response = await fetch('/api/convert', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      if (progressInterval) clearInterval(progressInterval);
       
-      const endTime = Date.now();
-      const conversionTime = (endTime - startTime) / 1000;
-      await handleStatsUpdate(file, true, conversionTime);
+      const blob = await response.blob();
+      setProgress(100);
+      setStatus('completed');
+
+      // Download handling
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `converted.${targetFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // After successful conversion, add to history
+      const newRecord: ConversionRecord = {
+        id: Date.now().toString(),
+        fileName: file.name,
+        originalFormat: file.name.split('.').pop() || '',
+        targetFormat,
+        timestamp: new Date().toISOString(),
+        fileSize: file.size,
+        downloadUrl: url, // Store the blob URL
+        status: 'completed'
+      };
+
+      setHistory(prev => [newRecord, ...prev].slice(0, 10)); // Keep last 10 conversions
+
+      // Reset after successful conversion
+      setTimeout(() => {
+        setProgress(0);
+        setStatus('idle');
+        setFile(null);
+        setTargetFormat('');
+      }, 2000);
+
     } catch (error) {
-      await handleStatsUpdate(file, false);
-      console.error('Conversion failed:', error);
+      console.error('Conversion error:', error);
+      if (progressInterval) clearInterval(progressInterval);
+      setStatus('failed');
+      setProgress(0);
+      setError(error instanceof Error ? error.message : 'Conversion failed');
     }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Your existing form submission logic here
-    // When you have the file, call handleConversion(file)
+    console.log('Form submitted', { file, targetFormat }); // Debug log
+    
+    setError(null);
+    
+    if (!file || !targetFormat) {
+      setError('Please select a file and target format');
+      return;
+    }
+
+    try {
+      await handleConversion(file);
+    } catch (error) {
+      console.error('Conversion error:', error); // Debug log
+      setError('Conversion failed');
+    }
   };
 
   return (
@@ -144,14 +224,32 @@ export function FileUpload() {
       </Card>
 
       {history.length > 0 && (
-        <Card className="border-2 border-green-600 bg-white overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold">
-              Conversion History
-            </CardTitle>
+        <Card className="border border-slate-200 bg-white/50 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-slate-900">
+                Recent Conversions
+              </CardTitle>
+              <Badge variant="secondary" className="text-xs">
+                {history.length} {history.length === 1 ? 'file' : 'files'}
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Your conversion history for this session
+            </p>
           </CardHeader>
           <CardContent>
-            <FileHistory records={history} />
+            <FileHistory 
+              records={history}
+              onDownload={(record) => {
+                const a = document.createElement('a');
+                a.href = record.downloadUrl;
+                a.download = `${record.fileName.split('.')[0]}.${record.targetFormat}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              }}
+            />
           </CardContent>
         </Card>
       )}

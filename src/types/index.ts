@@ -2,12 +2,12 @@ export * from './stats';
 // Export any other types you have
 export interface ConversionRecord {
     id: string;
-    originalName: string;
-    convertedName: string;
+    fileName: string;
     originalFormat: string;
-    convertedFormat: string;
-    timestamp: Date;
+    targetFormat: string;
+    fileSize: number;
+    timestamp: string;
     downloadUrl: string;
-    type: string;
+    status: 'completed' | 'failed';
   }
   
