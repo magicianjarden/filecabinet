@@ -1,59 +1,55 @@
 import { Redis } from '@upstash/redis'
+import { ConversionStats } from '@/types'
 
 export const redis = new Redis({
   url: process.env.UPSTASH_REDIS_REST_URL!,
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 })
 
-interface ConversionStats {
-  totalConversions: number
-  totalSize: number
-  conversionTimes: number[]
-  averageTime: number
-  conversionRate: number
-  byFormat: Record<string, number>
-  bySize: Record<string, number>
-  lastUpdated: string
-}
-
 export async function updateStats(format: string, size: number, time: number) {
   try {
     console.log('Updating stats:', { format, size, time })
     
-    const currentStats = await redis.get<ConversionStats>('conversion_stats')
-    console.log('Current stats:', currentStats)
-
-    const stats = currentStats || {
+    const defaultStats: ConversionStats = {
       totalConversions: 0,
-      totalSize: 0,
-      conversionTimes: [],
+      todayConversions: 0,
+      totalStorage: 0,
+      successfulConversions: 0,
+      failedConversions: 0,
       averageTime: 0,
       conversionRate: 100,
+      conversionTimes: [],
       byFormat: {},
       bySize: {},
-      lastUpdated: new Date().toISOString()
+      hourlyActivity: {},
+      successRate: 100,
+      lastUpdated: new Date().toISOString(),
+      popularConversions: []
     }
+
+    const currentStats = await redis.get<ConversionStats>('conversion_stats') || defaultStats
+    console.log('Current stats:', currentStats)
 
     // Update stats
-    stats.totalConversions += 1
-    stats.totalSize += size
-    stats.conversionTimes.push(time)
-    if (stats.conversionTimes.length > 50) {
-      stats.conversionTimes.shift()
+    currentStats.totalConversions += 1
+    currentStats.totalStorage += size
+    currentStats.conversionTimes.push(time)
+    if (currentStats.conversionTimes.length > 50) {
+      currentStats.conversionTimes.shift()
     }
-    stats.averageTime = stats.conversionTimes.reduce((a, b) => a + b, 0) / stats.conversionTimes.length
-    stats.byFormat[format] = (stats.byFormat[format] || 0) + 1
+    currentStats.averageTime = currentStats.conversionTimes.reduce((a, b) => a + b, 0) / currentStats.conversionTimes.length
+    currentStats.byFormat[format] = (currentStats.byFormat[format] || 0) + 1
     
     const sizeCategory = categorizeSize(size)
-    stats.bySize[sizeCategory] = (stats.bySize[sizeCategory] || 0) + 1
+    currentStats.bySize[sizeCategory] = (currentStats.bySize[sizeCategory] || 0) + 1
     
-    stats.lastUpdated = new Date().toISOString()
+    currentStats.lastUpdated = new Date().toISOString()
 
     // Save to Redis
-    const saved = await redis.set('conversion_stats', stats)
+    const saved = await redis.set('conversion_stats', currentStats)
     console.log('Saved stats:', saved)
     
-    return stats
+    return currentStats
   } catch (error) {
     console.error('Failed to update stats:', error)
     return null
@@ -93,13 +89,19 @@ export async function getStats(): Promise<ConversionStats | null> {
     if (!stats) {
       return {
         totalConversions: 0,
-        totalSize: 0,
-        conversionTimes: [],
+        todayConversions: 0,
+        totalStorage: 0,
+        successfulConversions: 0,
+        failedConversions: 0,
         averageTime: 0,
         conversionRate: 100,
+        conversionTimes: [],
         byFormat: {},
         bySize: {},
-        lastUpdated: new Date().toISOString()
+        hourlyActivity: {},
+        successRate: 100,
+        lastUpdated: new Date().toISOString(),
+        popularConversions: []
       }
     }
     return stats

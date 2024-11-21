@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { X, ArrowRight, FileText, Clock, HardDrive, BarChart } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
 import { kv } from '@vercel/kv';
-import { ConversionStats } from '@/lib/types';
+import { ConversionStats } from '@/types';
 import { getFileCategory } from '@/lib/utils';
 import Link from 'next/link';
 import { getMimeType } from '@/lib/utils/mime-types';
@@ -41,12 +41,22 @@ const getUniqueFormats = (formatMapping: Record<string, string[]>) => {
 
 export function FileUpload() {
   const [fileQueue, setFileQueue] = useState<FileWithStatus[]>([]);
-  const [history, setHistory] = useState<ConversionRecord[]>([]);
+  const [sessionHistory, setSessionHistory] = useState<ConversionRecord[]>([]);
   const [stats, setStats] = useState<ConversionStats>({
     totalConversions: 0,
     todayConversions: 0,
     totalStorage: 0,
-    successfulConversions: 0
+    successfulConversions: 0,
+    failedConversions: 0,
+    averageTime: 0,
+    conversionRate: 0,
+    conversionTimes: [],
+    byFormat: {},
+    bySize: {},
+    hourlyActivity: {},
+    successRate: 0,
+    lastUpdated: new Date().toISOString(),
+    popularConversions: []
   });
   const [conversionProgress, setConversionProgress] = useState<Record<string, number>>({});
 
@@ -64,7 +74,7 @@ export function FileUpload() {
         const historyResponse = await fetch('/api/conversions/history');
         if (!historyResponse.ok) throw new Error('Failed to fetch history');
         const historyData = await historyResponse.json();
-        setHistory(historyData);
+        setSessionHistory(historyData);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       }
@@ -101,12 +111,9 @@ export function FileUpload() {
   };
 
   const handleConvert = async () => {
-    // Only convert ready files, keep others in queue
     const readyFiles = fileQueue.filter(item => item.status === 'ready');
-    const otherFiles = fileQueue.filter(item => item.status !== 'ready');
-    
-    // Update queue to show only non-ready files
-    setFileQueue(prev => prev.filter(item => item.status !== 'ready'));
+    const pendingFiles = fileQueue.filter(item => item.status === 'pending');
+    setFileQueue(pendingFiles);
 
     for (const item of readyFiles) {
       let progressInterval: NodeJS.Timeout;
@@ -161,46 +168,71 @@ export function FileUpload() {
         const blob = await response.blob();
         const downloadUrl = URL.createObjectURL(blob);
 
-        // Create conversion record with updated property names
-        const conversionRecord: ConversionRecord = {
-          fileName: item.file.name,
-          fileSize: item.file.size,
-          originalFormat,
-          targetFormat,
-          timestamp: new Date().toISOString(),
-          status: 'completed',
-          downloadUrl
-        };
+        // Clear interval and set progress
+        clearInterval(progressInterval);
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: 100
+        }));
 
-        // Update stats and history
-        const statsResponse = await fetch('/api/stats', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(conversionRecord),
-        });
-
-        if (!statsResponse.ok) {
-          console.error('Failed to update stats');
-        } else {
-          const updatedStats = await statsResponse.json();
-          setStats(updatedStats);
-          setHistory(prev => [conversionRecord, ...prev]);
-        }
-
+        // Update queue status
         setFileQueue(prev => prev.map(f => 
           f.file.name === item.file.name 
             ? { ...f, status: 'completed' }
             : f
         ));
 
-        // Clear interval and set to 100% when done
-        clearInterval(progressInterval);
-        setConversionProgress(prev => ({
-          ...prev,
-          [item.file.name]: 100
-        }));
+        // Create conversion record for session only
+        const conversionRecord: ConversionRecord = {
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          originalFormat: extension.toLowerCase(),
+          targetFormat: item.targetFormat.toLowerCase(),
+          timestamp: new Date().toISOString(),
+          status: 'completed',
+          downloadUrl,
+          category: fileCategory
+        };
+
+        // Update session history
+        setSessionHistory(prev => [conversionRecord, ...prev]);
+
+        // Update only metrics in KV
+        try {
+          const defaultStats: ConversionStats = {
+            totalConversions: 0,
+            todayConversions: 0,
+            totalStorage: 0,
+            successfulConversions: 0,
+            failedConversions: 0,
+            averageTime: 0,
+            conversionRate: 0,
+            conversionTimes: [],
+            byFormat: {},
+            bySize: {},
+            hourlyActivity: {},
+            successRate: 0,
+            lastUpdated: new Date().toISOString(),
+            popularConversions: []
+          };
+
+          const stats = await kv.get<ConversionStats>('conversion_stats') || defaultStats;
+          const today = new Date().toISOString().split('T')[0];
+          const currentDate = stats.lastUpdated.split('T')[0];
+          
+          await kv.set('conversion_stats', {
+            ...stats,
+            totalConversions: stats.totalConversions + 1,
+            todayConversions: today === currentDate
+              ? stats.todayConversions + 1 
+              : 1,
+            totalStorage: stats.totalStorage + item.file.size,
+            successfulConversions: stats.successfulConversions + 1,
+            lastUpdated: new Date().toISOString()
+          } as ConversionStats);
+        } catch (kvError) {
+          console.error('Failed to update metrics:', kvError);
+        }
 
       } catch (error) {
         // Show error state
@@ -234,7 +266,7 @@ export function FileUpload() {
           timestamp: new Date().toISOString(),
           status: 'failed'
         };
-        setHistory(prev => [failedRecord, ...prev]);
+        setSessionHistory(prev => [failedRecord, ...prev]);
       }
     }
   };
@@ -435,9 +467,9 @@ export function FileUpload() {
             <FileText className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{history.length}</div>
+            <div className="text-2xl font-bold">{sessionHistory.length}</div>
             <p className="text-xs text-muted-foreground">
-              +{history.filter(h => 
+              +{sessionHistory.filter(h => 
                 new Date(h.timestamp).getTime() > Date.now() - 24 * 60 * 60 * 1000
               ).length} today
             </p>
@@ -466,7 +498,7 @@ export function FileUpload() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(history.reduce((acc, curr) => acc + curr.fileSize, 0) / (1024 * 1024)).toFixed(1)}MB
+              {(sessionHistory.reduce((acc, curr) => acc + curr.fileSize, 0) / (1024 * 1024)).toFixed(1)}MB
             </div>
             <p className="text-xs text-muted-foreground">
               across all conversions
@@ -481,12 +513,12 @@ export function FileUpload() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {history.length > 0 
-                ? Math.round((history.filter(h => h.status === 'completed').length / history.length) * 100)
+              {sessionHistory.length > 0 
+                ? Math.round((sessionHistory.filter(h => h.status === 'completed').length / sessionHistory.length) * 100)
                 : 0}%
             </div>
             <p className="text-xs text-muted-foreground">
-              {history.filter(h => h.status === 'completed').length} successful
+              {sessionHistory.filter(h => h.status === 'completed').length} successful
             </p>
           </CardContent>
         </Card>
@@ -506,7 +538,7 @@ export function FileUpload() {
         </Button>
       </Link>
 
-      {history.length > 0 && (
+      {sessionHistory.length > 0 && (
         <Card className="border border-slate-200 bg-white/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -517,7 +549,7 @@ export function FileUpload() {
                 variant="secondary" 
                 className="bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
               >
-                {history.length} {history.length === 1 ? 'file' : 'files'}
+                {sessionHistory.length} {sessionHistory.length === 1 ? 'file' : 'files'}
               </Badge>
             </div>
             <p className="text-sm text-slate-500">
@@ -526,7 +558,7 @@ export function FileUpload() {
           </CardHeader>
           <CardContent>
             <FileHistory 
-              records={history}
+              records={sessionHistory}
               onDownload={(record) => {
                 const a = document.createElement('a');
                 a.href = record.downloadUrl || '';

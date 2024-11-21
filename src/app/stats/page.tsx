@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getGlobalStats } from "@/lib/utils/stats-service";
-import { ConversionStats } from "@/types/stats";
+import { ConversionStats } from "@/types";
 import { getInitialStats } from "@/lib/utils/stats";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SizeAnalytics } from "@/components/Stats/SizeAnalytics";
@@ -23,7 +23,11 @@ export default function StatsPage() {
     try {
       setIsRefreshing(true);
       const data = await getGlobalStats();
-      setStats(data);
+      setStats({
+        ...data,
+        todayConversions: 0,
+        totalStorage: 0
+      } as ConversionStats);
     } catch (error) {
       console.error('Error fetching stats:', error);
     } finally {
@@ -91,7 +95,7 @@ export default function StatsPage() {
         
         <SizeAnalytics 
           bySize={stats.bySize}
-          totalSize={stats.totalSize}
+          totalSize={stats.totalStorage}
           isLoading={isRefreshing}
         />
         

@@ -1,11 +1,12 @@
-import { ConversionStats } from '@/types/stats';
+import { ConversionStats } from '@/types';
 
 export function getInitialStats(): ConversionStats {
   return {
     totalConversions: 0,
+    todayConversions: 0,
+    totalStorage: 0,
     successfulConversions: 0,
     failedConversions: 0,
-    totalSize: 0,
     averageTime: 0,
     conversionRate: 0,
     conversionTimes: [],
@@ -14,7 +15,7 @@ export function getInitialStats(): ConversionStats {
     hourlyActivity: {},
     successRate: 0,
     lastUpdated: new Date().toISOString(),
-    popularConversions: [],
+    popularConversions: []
   };
 }
 
