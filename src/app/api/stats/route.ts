@@ -4,10 +4,12 @@ import { NextResponse } from 'next/server';
 interface ConversionRecord {
   fileName: string;
   fileSize: number;
-  inputFormat: string;
-  outputFormat: string;
-  timestamp: number;
+  originalFormat: string;
+  targetFormat: string;
+  timestamp: string;
   status: 'completed' | 'failed';
+  downloadUrl?: string;
+  error?: string;
 }
 
 export async function GET() {
@@ -53,20 +55,21 @@ export async function POST(request: Request) {
     ]);
 
     const updatedHistory = [record, ...currentHistory].slice(0, 100);
+    const isSuccessful = record.status === 'completed';
 
     await Promise.all([
       kv.set('conversion_history', updatedHistory),
       kv.set('total_conversions', currentTotalConversions + 1),
-      kv.set('total_size', currentTotalSize + (record.fileSize || 0)),
-      kv.set('successful_conversions', currentSuccessfulConversions + 1)
+      kv.set('total_size', currentTotalSize + record.fileSize),
+      isSuccessful ? kv.set('successful_conversions', currentSuccessfulConversions + 1) : null
     ]);
 
     return NextResponse.json({
       history: updatedHistory,
       totalConversions: currentTotalConversions + 1,
-      totalSize: currentTotalSize + (record.fileSize || 0),
+      totalSize: currentTotalSize + record.fileSize,
       todayConversions: 0,
-      successRate: Math.round(((currentSuccessfulConversions + 1) / (currentTotalConversions + 1)) * 100)
+      successRate: Math.round(((currentSuccessfulConversions + (isSuccessful ? 1 : 0)) / (currentTotalConversions + 1)) * 100)
     });
   } catch (error) {
     console.error('Failed to fetch stats:', error);

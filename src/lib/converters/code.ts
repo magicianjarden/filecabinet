@@ -1,10 +1,10 @@
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 
-export async function codeConverter(
+export const codeConverter = async (
   file: File,
   fromFormat: string,
   toFormat: string
-): Promise<Blob> {
+): Promise<Blob> => {
   const text = await file.text();
   let data: any;
 
@@ -50,4 +50,4 @@ export async function codeConverter(
   return new Blob([result], { 
     type: toFormat === 'json' ? 'application/json' : 'application/xml' 
   });
-} 
+}; 

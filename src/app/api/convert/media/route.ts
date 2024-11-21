@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mediaConverter } from '@/lib/converters/media';
-import { trackConversion } from '@/lib/utils/stats-service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes for larger files
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,10 +22,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await mediaConverter.convert(buffer, inputFormat, outputFormat);
 
-    // Track conversion stats
-    await trackConversion('media', inputFormat, outputFormat, buffer.length);
-
-    const contentType = outputFormat === 'mp3' 
+    const contentType = outputFormat.startsWith('audio/') 
       ? 'audio/mpeg'
       : 'video/mp4';
 

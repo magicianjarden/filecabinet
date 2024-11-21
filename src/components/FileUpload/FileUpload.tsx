@@ -112,58 +112,92 @@ export function FileUpload() {
         ));
 
         const fileCategory = getFileCategory(item.file.name);
-        const inputFormat = item.file.name.split('.').pop()?.toLowerCase() || '';
-        const outputFormat = item.targetFormat.toLowerCase();
+        const extension = item.file.name.split('.').pop();
+        if (!extension) {
+          throw new Error('Invalid file format');
+        }
+
+        const originalFormat = extension.toLowerCase();
+        const targetFormat = item.targetFormat.toLowerCase();
         
         const formData = new FormData();
         formData.append('file', item.file);
-        formData.append('inputFormat', inputFormat);
-        formData.append('outputFormat', outputFormat);
+        formData.append('inputFormat', originalFormat);
+        formData.append('outputFormat', targetFormat);
 
         const response = await fetch(`/api/convert/${fileCategory}`, {
           method: 'POST',
           body: formData,
         });
 
-        if (!response.ok) throw new Error('Conversion failed');
+        if (!response.ok) {
+          throw new Error(`Conversion failed: ${response.statusText}`);
+        }
 
         const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
+        const downloadUrl = URL.createObjectURL(blob);
 
-        // Create new record
-        const newRecord = {
-          id: Date.now().toString(),
+        // Create conversion record with updated property names
+        const conversionRecord: ConversionRecord = {
           fileName: item.file.name,
-          originalFormat: item.file.name.split('.').pop() || '',
-          targetFormat: item.targetFormat,
           fileSize: item.file.size,
+          originalFormat,
+          targetFormat,
           timestamp: new Date().toISOString(),
-          downloadUrl: url,
-          status: 'completed' as const
+          status: 'completed',
+          downloadUrl
         };
 
-        // Update history locally
-        setHistory(prev => [newRecord, ...prev]);
-
-        // Save to KV
-        await fetch('/api/conversions/history', {
+        // Update stats and history
+        const statsResponse = await fetch('/api/stats', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(newRecord),
+          body: JSON.stringify(conversionRecord),
         });
 
-        // Update stats
-        await updateStats(item.file.size);
+        if (!statsResponse.ok) {
+          console.error('Failed to update stats');
+        } else {
+          const updatedStats = await statsResponse.json();
+          setStats(updatedStats);
+          setHistory(prev => [conversionRecord, ...prev]);
+        }
+
+        setFileQueue(prev => prev.map(f => 
+          f.file.name === item.file.name 
+            ? { ...f, status: 'completed' }
+            : f
+        ));
 
       } catch (error) {
         console.error('Conversion error:', error);
-        setFileQueue(prev => [...prev, {
-          ...item,
-          status: 'failed',
-          error: error instanceof Error ? error.message : 'Conversion failed'
-        }]);
+        const extension = item.file.name.split('.').pop();
+        if (!extension) {
+          throw new Error('Invalid file format');
+        }
+
+        setFileQueue(prev => prev.map(f => 
+          f.file.name === item.file.name 
+            ? { 
+                ...f, 
+                status: 'failed',
+                error: error instanceof Error ? error.message : 'Conversion failed'
+              }
+            : f
+        ));
+
+        // Add failed conversion to history with updated property names
+        const failedRecord: ConversionRecord = {
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          originalFormat: extension.toLowerCase(),
+          targetFormat: item.targetFormat.toLowerCase(),
+          timestamp: new Date().toISOString(),
+          status: 'failed'
+        };
+        setHistory(prev => [failedRecord, ...prev]);
       }
     }
   };
@@ -443,7 +477,7 @@ export function FileUpload() {
               records={history}
               onDownload={(record) => {
                 const a = document.createElement('a');
-                a.href = record.downloadUrl;
+                a.href = record.downloadUrl || '';
                 a.download = `${record.fileName.split('.')[0]}.${record.targetFormat}`;
                 document.body.appendChild(a);
                 a.click();

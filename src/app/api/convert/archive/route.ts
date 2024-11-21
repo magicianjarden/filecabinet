@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiveConverter } from '@/lib/converters/archive';
-import { trackConversion } from '@/lib/utils/stats-service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,12 +22,9 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await archiveConverter.convert(buffer, inputFormat, outputFormat);
 
-    // Track conversion stats
-    await trackConversion('archive', inputFormat, outputFormat, buffer.length);
-
     return new NextResponse(result, {
       headers: {
-        'Content-Type': 'application/zip',
+        'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
       },
     });
