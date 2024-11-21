@@ -35,7 +35,7 @@ export function FileHistory({ records, onDownload }: FileHistoryProps) {
         <TableBody>
           {records.map((record) => (
             <TableRow 
-              key={record.id}
+              key={`${record.fileName}-${record.timestamp}`}
               className="hover:bg-slate-50/50 group"
             >
               <TableCell className="font-medium">

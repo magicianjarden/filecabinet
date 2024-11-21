@@ -99,11 +99,16 @@ export function FileUpload() {
             : f
         ));
 
+        // Determine file category
+        const fileCategory = getFileCategory(item.file.name);
+        
         const formData = new FormData();
         formData.append('file', item.file);
-        formData.append('targetFormat', item.targetFormat);
+        formData.append('inputFormat', item.file.name.split('.').pop() || '');
+        formData.append('outputFormat', item.targetFormat);
 
-        const response = await fetch('/api/convert', {
+        // Use the correct endpoint based on file category
+        const response = await fetch(`/api/convert/${fileCategory}`, {
           method: 'POST',
           body: formData,
         });
