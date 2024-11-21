@@ -47,6 +47,7 @@ export function FileUpload() {
     totalStorage: 0,
     successfulConversions: 0
   });
+  const [conversionProgress, setConversionProgress] = useState<Record<string, number>>({});
 
   // Fetch both stats and history on mount
   useEffect(() => {
@@ -105,6 +106,12 @@ export function FileUpload() {
 
     for (const item of readyFiles) {
       try {
+        // Initialize progress for this file
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: 0
+        }));
+
         setFileQueue(prev => prev.map(f => 
           f.file.name === item.file.name 
             ? { ...f, status: 'processing' }
