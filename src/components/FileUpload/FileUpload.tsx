@@ -17,6 +17,7 @@ import { kv } from '@vercel/kv';
 import { ConversionStats } from '@/lib/types';
 import { getFileCategory } from '@/lib/utils';
 import Link from 'next/link';
+import { getMimeType } from '@/lib/utils/mime-types';
 
 interface FileWithStatus {
   file: File;
@@ -86,6 +87,17 @@ export function FileUpload() {
     ));
   };
 
+  const getFileCategory = (fileName: string): string => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    const mime = getMimeType(ext);
+    
+    if (mime.startsWith('image/')) return 'image';
+    if (mime.startsWith('video/') || mime.startsWith('audio/')) return 'media';
+    if (mime.startsWith('application/pdf') || mime.startsWith('application/msword') || mime === 'text/plain') return 'document';
+    if (mime.startsWith('application/zip') || mime.startsWith('application/x-')) return 'archive';
+    return 'document'; // default fallback
+  };
+
   const handleConvert = async () => {
     const readyFiles = fileQueue.filter(item => item.status === 'ready');
     const pendingFiles = fileQueue.filter(item => item.status === 'pending');
@@ -99,15 +111,15 @@ export function FileUpload() {
             : f
         ));
 
-        // Determine file category
         const fileCategory = getFileCategory(item.file.name);
+        const inputFormat = item.file.name.split('.').pop()?.toLowerCase() || '';
+        const outputFormat = item.targetFormat.toLowerCase();
         
         const formData = new FormData();
         formData.append('file', item.file);
-        formData.append('inputFormat', item.file.name.split('.').pop() || '');
-        formData.append('outputFormat', item.targetFormat);
+        formData.append('inputFormat', inputFormat);
+        formData.append('outputFormat', outputFormat);
 
-        // Use the correct endpoint based on file category
         const response = await fetch(`/api/convert/${fileCategory}`, {
           method: 'POST',
           body: formData,
@@ -146,6 +158,7 @@ export function FileUpload() {
         await updateStats(item.file.size);
 
       } catch (error) {
+        console.error('Conversion error:', error);
         setFileQueue(prev => [...prev, {
           ...item,
           status: 'failed',
