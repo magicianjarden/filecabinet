@@ -47,24 +47,26 @@ export function FileUpload() {
     successfulConversions: 0
   });
 
-  // Fetch stats on component mount
+  // Fetch both stats and history on mount
   useEffect(() => {
-    async function fetchStats() {
+    async function fetchInitialData() {
       try {
-        const kvStats = await kv.hgetall('conversion_stats');
-        if (kvStats) {
-          setStats({
-            totalConversions: (kvStats.totalConversions as number) || 0,
-            todayConversions: (kvStats.todayConversions as number) || 0,
-            totalStorage: (kvStats.totalStorage as number) || 0,
-            successfulConversions: (kvStats.successfulConversions as number) || 0
-          });
-        }
+        // Fetch stats
+        const response = await fetch('/api/stats');
+        if (!response.ok) throw new Error('Failed to fetch stats');
+        const statsData = await response.json();
+        setStats(statsData);
+
+        // Fetch history
+        const historyResponse = await fetch('/api/conversions/history');
+        if (!historyResponse.ok) throw new Error('Failed to fetch history');
+        const historyData = await historyResponse.json();
+        setHistory(historyData);
       } catch (error) {
-        console.error('Failed to fetch stats:', error);
+        console.error('Failed to fetch data:', error);
       }
     }
-    fetchStats();
+    fetchInitialData();
   }, []);
 
   const handleFilesSelected = (newFiles: File[]) => {
@@ -85,14 +87,10 @@ export function FileUpload() {
   };
 
   const handleConvert = async () => {
-    // Get only files that are ready to convert
     const readyFiles = fileQueue.filter(item => item.status === 'ready');
-    
-    // Keep pending files in the queue
     const pendingFiles = fileQueue.filter(item => item.status === 'pending');
     setFileQueue(pendingFiles);
 
-    // Convert ready files
     for (const item of readyFiles) {
       try {
         setFileQueue(prev => prev.map(f => 
@@ -101,7 +99,6 @@ export function FileUpload() {
             : f
         ));
 
-        // Your conversion logic here
         const formData = new FormData();
         formData.append('file', item.file);
         formData.append('targetFormat', item.targetFormat);
@@ -116,8 +113,8 @@ export function FileUpload() {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
 
-        // Add to history
-        setHistory(prev => [{
+        // Create new record
+        const newRecord = {
           id: Date.now().toString(),
           fileName: item.file.name,
           originalFormat: item.file.name.split('.').pop() || '',
@@ -125,14 +122,25 @@ export function FileUpload() {
           fileSize: item.file.size,
           timestamp: new Date().toISOString(),
           downloadUrl: url,
-          status: 'completed'
-        }, ...prev]);
+          status: 'completed' as const
+        };
+
+        // Update history locally
+        setHistory(prev => [newRecord, ...prev]);
+
+        // Save to KV
+        await fetch('/api/conversions/history', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(newRecord),
+        });
 
         // Update stats
-        updateStats(item.file.size);
+        await updateStats(item.file.size);
 
       } catch (error) {
-        // If conversion fails, put the file back in queue as pending
         setFileQueue(prev => [...prev, {
           ...item,
           status: 'failed',
@@ -142,18 +150,20 @@ export function FileUpload() {
     }
   };
 
-  // Update stats after successful conversion
   const updateStats = async (fileSize: number) => {
     try {
-      const newStats = {
-        totalConversions: stats.totalConversions + 1,
-        todayConversions: stats.todayConversions + 1,
-        totalStorage: stats.totalStorage + fileSize,
-        successfulConversions: stats.successfulConversions + 1
-      };
+      // Update stats via API instead of direct KV access
+      const response = await fetch('/api/stats/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fileSize }),
+      });
 
-      // Update KV store
-      await kv.hset('conversion_stats', newStats);
+      if (!response.ok) throw new Error('Failed to update stats');
+      
+      const newStats = await response.json();
       setStats(newStats);
     } catch (error) {
       console.error('Failed to update stats:', error);
