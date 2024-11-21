@@ -3,6 +3,7 @@
 import { FileUpload } from '@/components/FileUpload';
 import { Header } from '@/components/Header';
 import { SupportedFormats } from '@/components/SupportedFormats';
+import { Stats } from '@/components/Stats/Stats';
 import { motion } from 'framer-motion';
 
 export default function Home() {
@@ -11,11 +12,19 @@ export default function Home() {
       <Header />
       
       <main className="container mx-auto px-4 py-8 space-y-12">
-        {/* File Upload Section */}
         <section>
           <div className="max-w-4xl mx-auto">
             <FileUpload />
           </div>
+        </section>
+
+        <section className="max-w-4xl mx-auto">
+          <Stats 
+            totalConversions={0}
+            totalSize={0}
+            averageTime={0}
+            conversionRate={0}
+          />
         </section>
 
         {/* Supported Formats Section */}
