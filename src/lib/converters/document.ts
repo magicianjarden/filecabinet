@@ -1,9 +1,14 @@
 import { PDFDocument } from 'pdf-lib';
+import { Converter } from '@/types';
 
-export const documentConverter = {
-  async convert(buffer: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
+export const documentConverter: Converter = {
+  name: 'Document Converter',
+  description: 'Convert documents to PDF format',
+  inputFormats: ['docx', 'txt', 'md'],
+  outputFormats: ['pdf'],
+  
+  async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {
-      // Basic implementation for PDF conversion
       if (outputFormat.toLowerCase() === 'pdf') {
         const pdfDoc = await PDFDocument.create();
         // Add content to PDF based on input
@@ -14,7 +19,7 @@ export const documentConverter = {
       throw new Error(`Unsupported output format: ${outputFormat}`);
     } catch (error) {
       console.error('Document conversion error:', error);
-      throw error;
+      throw new Error('Failed to convert document');
     }
   }
 }; 

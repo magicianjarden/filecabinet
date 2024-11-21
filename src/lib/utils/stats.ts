@@ -25,4 +25,22 @@ export function updateStats(stats: ConversionStats): void {
   } catch (error) {
     console.error('Error saving stats:', error);
   }
+}
+
+export async function updateConversionStats(fileSize: number) {
+  try {
+    const response = await fetch('/api/stats/update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fileSize }),
+    });
+
+    if (!response.ok) throw new Error('Failed to update stats');
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to update stats:', error);
+    return null;
+  }
 } 

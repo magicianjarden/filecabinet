@@ -1,5 +1,5 @@
 import AdmZip from 'adm-zip';
-import { Converter } from '@/types/converters';
+import { Converter } from '@/types';
 
 export const archiveConverter: Converter = {
   name: 'Archive Converter',

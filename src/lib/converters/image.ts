@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { Converter } from '@/types/converters';
+import { Converter } from '@/types';
 import { settings } from '@/config/settings';
 
 export const imageConverter: Converter = {

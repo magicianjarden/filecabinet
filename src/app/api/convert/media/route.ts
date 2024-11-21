@@ -1,65 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { mediaConverter } from '@/lib/converters/media';
+import { NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
-
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const inputFormat = formData.get('inputFormat') as string;
-    const outputFormat = formData.get('outputFormat') as string;
+    const targetFormat = formData.get('targetFormat') as string;
 
-    if (!file) {
+    if (!file || !targetFormat) {
       return NextResponse.json(
-        { error: 'No file provided' },
+        { error: 'File and target format are required' },
         { status: 400 }
       );
     }
 
-    console.log(`Starting media conversion: ${inputFormat} -> ${outputFormat}`);
-    console.log(`File size: ${file.size} bytes`);
-
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await mediaConverter.convert(buffer, inputFormat, outputFormat);
-
-    console.log('Conversion completed successfully');
-
-    return new NextResponse(result, {
-      headers: {
-        'Content-Type': getMimeTypeForFormat(outputFormat),
-        'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
-      },
+    // Return success response
+    return NextResponse.json({ 
+      success: true,
+      message: 'File received for conversion'
     });
+
   } catch (error) {
-    console.error('Media conversion error:', error);
+    console.error('Conversion error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to convert file' },
+      { error: 'Failed to process conversion' },
       { status: 500 }
     );
   }
-}
-
-function getMimeTypeForFormat(format: string): string {
-  const mimeTypes: Record<string, string> = {
-    // Video formats
-    'mp4': 'video/mp4',
-    'webm': 'video/webm',
-    'mov': 'video/quicktime',
-    'avi': 'video/x-msvideo',
-    'mkv': 'video/x-matroska',
-    'm4v': 'video/x-m4v',
-    
-    // Audio formats
-    'mp3': 'audio/mpeg',
-    'wav': 'audio/wav',
-    'ogg': 'audio/ogg',
-    'm4a': 'audio/mp4',
-    'flac': 'audio/flac',
-    'aac': 'audio/aac',
-  };
-
-  return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
 } 

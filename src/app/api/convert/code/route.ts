@@ -17,9 +17,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await codeConverter(file, inputFormat, outputFormat);
+    const result = await codeConverter.convert(buffer, inputFormat, outputFormat);
 
     return new NextResponse(result, {
       headers: {

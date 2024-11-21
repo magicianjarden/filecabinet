@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FileDropzone } from './FileDropzone';
 import { ConversionOptions } from './ConversionOptions';
 import { FileHistory } from '../FileHistory/FileHistory';
@@ -19,12 +19,24 @@ import { getFileCategory } from '@/lib/utils';
 import Link from 'next/link';
 import { getMimeType } from '@/lib/utils/mime-types';
 import { ProgressBar } from './ProgressBar';
+import { ConversionStatus } from "@/types";
+import { useStats } from '@/hooks/useStats';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile } from '@ffmpeg/util';
 
 interface FileWithStatus {
   file: File;
   targetFormat: string;
   status: 'pending' | 'ready' | 'processing' | 'completed' | 'failed';
   error?: string;
+}
+
+interface ConversionProgress {
+  [fileName: string]: {
+    progress: number;
+    status: ConversionStatus;
+    error: string | null;
+  }
 }
 
 const getUniqueFormats = (formatMapping: Record<string, string[]>) => {
@@ -42,6 +54,7 @@ const getUniqueFormats = (formatMapping: Record<string, string[]>) => {
 export function FileUpload() {
   const [fileQueue, setFileQueue] = useState<FileWithStatus[]>([]);
   const [sessionHistory, setSessionHistory] = useState<ConversionRecord[]>([]);
+  const [conversionProgress, setConversionProgress] = useState<ConversionProgress>({});
   const [stats, setStats] = useState<ConversionStats>({
     totalConversions: 0,
     todayConversions: 0,
@@ -58,25 +71,52 @@ export function FileUpload() {
     lastUpdated: new Date().toISOString(),
     popularConversions: []
   });
-  const [conversionProgress, setConversionProgress] = useState<Record<string, number>>({});
+  const [progress, setProgress] = useState(0);
+  const [isConverting, setIsConverting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { incrementConversions } = useStats();
 
   // Fetch both stats and history on mount
   useEffect(() => {
     async function fetchInitialData() {
       try {
-        // Fetch stats
+        // Fetch stats with error handling
         const response = await fetch('/api/stats');
-        if (!response.ok) throw new Error('Failed to fetch stats');
-        const statsData = await response.json();
-        setStats(statsData);
+        if (!response.ok) {
+          console.warn('Stats not available:', await response.text());
+          // Initialize with empty stats instead of throwing
+          setStats({
+            totalConversions: 0,
+            todayConversions: 0,
+            totalStorage: 0,
+            successfulConversions: 0,
+            failedConversions: 0,
+            averageTime: 0,
+            conversionRate: 0,
+            conversionTimes: [],
+            byFormat: {},
+            bySize: {},
+            hourlyActivity: {},
+            successRate: 0,
+            lastUpdated: new Date().toISOString(),
+            popularConversions: []
+          });
+        } else {
+          const statsData = await response.json();
+          setStats(statsData);
+        }
 
-        // Fetch history
+        // Fetch history with error handling
         const historyResponse = await fetch('/api/conversions/history');
-        if (!historyResponse.ok) throw new Error('Failed to fetch history');
-        const historyData = await historyResponse.json();
-        setSessionHistory(historyData);
+        if (!historyResponse.ok) {
+          console.warn('History not available:', await historyResponse.text());
+          setSessionHistory([]);
+        } else {
+          const historyData = await historyResponse.json();
+          setSessionHistory(historyData);
+        }
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.warn('Failed to fetch initial data:', error);
       }
     }
     fetchInitialData();
@@ -116,8 +156,19 @@ export function FileUpload() {
     setFileQueue(pendingFiles);
 
     for (const item of readyFiles) {
-      let progressInterval: NodeJS.Timeout;
+      const startTime = Date.now();
       
+      // Add to session history immediately with 'processing' status
+      const initialRecord: ConversionRecord = {
+        fileName: item.file.name,
+        fileSize: item.file.size,
+        targetFormat: item.targetFormat,
+        status: 'processing',
+        timestamp: new Date().toISOString()
+      };
+      
+      setSessionHistory(prev => [initialRecord, ...prev]);
+
       try {
         // Add file back to queue with processing status
         setFileQueue(prev => [...prev, { ...item, status: 'processing' }]);
@@ -125,148 +176,136 @@ export function FileUpload() {
         // Initialize progress
         setConversionProgress(prev => ({
           ...prev,
-          [item.file.name]: 0
+          [item.file.name]: {
+            progress: 0,
+            status: 'processing',
+            error: null
+          }
         }));
 
-        // Start progress simulation
-        progressInterval = setInterval(() => {
-          setConversionProgress(prev => {
-            const currentProgress = prev[item.file.name] || 0;
-            if (currentProgress < 90) {
-              return {
-                ...prev,
-                [item.file.name]: currentProgress + 10
-              };
-            }
-            return prev;
-          });
-        }, 300);
-
-        const fileCategory = getFileCategory(item.file.name);
-        const extension = item.file.name.split('.').pop();
-        if (!extension) {
-          throw new Error('Invalid file format');
-        }
-
-        const originalFormat = extension.toLowerCase();
-        const targetFormat = item.targetFormat.toLowerCase();
+        // Create FFmpeg instance
+        const ffmpeg = new FFmpeg();
         
-        const formData = new FormData();
-        formData.append('file', item.file);
-        formData.append('inputFormat', originalFormat);
-        formData.append('outputFormat', targetFormat);
-
-        const response = await fetch(`/api/convert/${fileCategory}`, {
-          method: 'POST',
-          body: formData,
+        // Load FFmpeg
+        await ffmpeg.load({
+          coreURL: '/ffmpeg/ffmpeg-core.js',
+          wasmURL: '/ffmpeg/ffmpeg-core.wasm',
         });
 
-        if (!response.ok) {
-          throw new Error(`Conversion failed: ${response.statusText}`);
-        }
-
-        const blob = await response.blob();
-        const downloadUrl = URL.createObjectURL(blob);
-
-        // Clear interval and set progress
-        clearInterval(progressInterval);
+        // Update progress to 30%
         setConversionProgress(prev => ({
           ...prev,
-          [item.file.name]: 100
+          [item.file.name]: {
+            ...prev[item.file.name],
+            progress: 30
+          }
         }));
 
-        // Update queue status
+        // Write input file
+        const inputFileName = `input.${item.file.name.split('.').pop()}`;
+        const outputFileName = `output.${item.targetFormat}`;
+        await ffmpeg.writeFile(inputFileName, await fetchFile(item.file));
+
+        // Update progress to 50%
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            ...prev[item.file.name],
+            progress: 50
+          }
+        }));
+
+        // Run conversion
+        await ffmpeg.exec(['-i', inputFileName, outputFileName]);
+
+        // Update progress to 70%
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            ...prev[item.file.name],
+            progress: 70
+          }
+        }));
+
+        // Read the output file
+        const data = await ffmpeg.readFile(outputFileName);
+        const uint8Array = data as Uint8Array;
+        const blob = new Blob([uint8Array], { type: `audio/${item.targetFormat}` });
+        const url = URL.createObjectURL(blob);
+
+        // Create download link
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${item.file.name.split('.')[0]}.${item.targetFormat}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Clean up
+        await ffmpeg.deleteFile(inputFileName);
+        await ffmpeg.deleteFile(outputFileName);
+
+        // Update progress to complete
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            progress: 100,
+            status: 'completed',
+            error: null
+          }
+        }));
+
+        // Update file queue status
         setFileQueue(prev => prev.map(f => 
           f.file.name === item.file.name 
             ? { ...f, status: 'completed' }
             : f
         ));
 
-        // Create conversion record for session only
-        const conversionRecord: ConversionRecord = {
-          fileName: item.file.name,
-          fileSize: item.file.size,
-          originalFormat: extension.toLowerCase(),
-          targetFormat: item.targetFormat.toLowerCase(),
-          timestamp: new Date().toISOString(),
-          status: 'completed',
-          downloadUrl,
-          category: fileCategory
-        };
+        await incrementConversions();
 
-        // Update session history
-        setSessionHistory(prev => [conversionRecord, ...prev]);
+        // Update the existing record instead of creating a new one
+        setSessionHistory(prev => prev.map(record => 
+          record.fileName === item.file.name 
+            ? {
+                ...record,
+                status: 'completed',
+                downloadUrl: url
+              }
+            : record
+        ));
 
-        // Update only metrics in KV
-        try {
-          const defaultStats: ConversionStats = {
-            totalConversions: 0,
-            todayConversions: 0,
-            totalStorage: 0,
-            successfulConversions: 0,
-            failedConversions: 0,
-            averageTime: 0,
-            conversionRate: 0,
-            conversionTimes: [],
-            byFormat: {},
-            bySize: {},
-            hourlyActivity: {},
-            successRate: 0,
-            lastUpdated: new Date().toISOString(),
-            popularConversions: []
-          };
-
-          const stats = await kv.get<ConversionStats>('conversion_stats') || defaultStats;
-          const today = new Date().toISOString().split('T')[0];
-          const currentDate = stats.lastUpdated.split('T')[0];
-          
-          await kv.set('conversion_stats', {
-            ...stats,
-            totalConversions: stats.totalConversions + 1,
-            todayConversions: today === currentDate
-              ? stats.todayConversions + 1 
-              : 1,
-            totalStorage: stats.totalStorage + item.file.size,
-            successfulConversions: stats.successfulConversions + 1,
-            lastUpdated: new Date().toISOString()
-          } as ConversionStats);
-        } catch (kvError) {
-          console.error('Failed to update metrics:', kvError);
-        }
-
-      } catch (error) {
-        // Show error state
+      } catch (err) {
+        console.error('Conversion error:', err);
+        
+        // Update progress with error
         setConversionProgress(prev => ({
           ...prev,
-          [item.file.name]: 0
+          [item.file.name]: {
+            progress: 0,
+            status: 'failed',
+            error: err instanceof Error ? err.message : 'Failed to convert file'
+          }
         }));
 
-        console.error('Conversion error:', error);
-        const extension = item.file.name.split('.').pop();
-        if (!extension) {
-          throw new Error('Invalid file format');
-        }
-
+        // Update file queue status
         setFileQueue(prev => prev.map(f => 
           f.file.name === item.file.name 
-            ? { 
-                ...f, 
-                status: 'failed',
-                error: error instanceof Error ? error.message : 'Conversion failed'
-              }
+            ? { ...f, status: 'failed', error: err instanceof Error ? err.message : 'Failed to convert file' }
             : f
         ));
 
-        // Add failed conversion to history with updated property names
-        const failedRecord: ConversionRecord = {
-          fileName: item.file.name,
-          fileSize: item.file.size,
-          originalFormat: extension.toLowerCase(),
-          targetFormat: item.targetFormat.toLowerCase(),
-          timestamp: new Date().toISOString(),
-          status: 'failed'
-        };
-        setSessionHistory(prev => [failedRecord, ...prev]);
+        // Update the existing record with error status
+        setSessionHistory(prev => prev.map(record => 
+          record.fileName === item.file.name 
+            ? {
+                ...record,
+                status: 'failed',
+                error: err instanceof Error ? err.message : 'Failed to convert file'
+              }
+            : record
+        ));
       }
     }
   };
@@ -289,6 +328,35 @@ export function FileUpload() {
     } catch (error) {
       console.error('Failed to update stats:', error);
     }
+  };
+
+  const updateProgress = useCallback((
+    fileName: string, 
+    updates: Partial<{
+      progress: number;
+      status: 'pending' | 'processing' | 'completed' | 'failed';
+      error: string | null;
+    }>
+  ) => {
+    setConversionProgress(prev => ({
+      ...prev,
+      [fileName]: {
+        ...prev[fileName],
+        ...updates
+      }
+    }));
+  }, []);
+
+  const getFileProgress = (fileName: string) => {
+    return conversionProgress[fileName]?.progress || 0;
+  };
+
+  const getFileStatus = (fileName: string): ConversionStatus => {
+    return conversionProgress[fileName]?.status || 'idle';
+  };
+
+  const getFileError = (fileName: string) => {
+    return conversionProgress[fileName]?.error || null;
   };
 
   return (
@@ -413,9 +481,9 @@ export function FileUpload() {
 
                           {(status === 'processing' || status === 'completed' || status === 'failed') && (
                             <ProgressBar
-                              progress={conversionProgress[file.name] || 0}
-                              status={status === 'processing' ? 'processing' : status === 'completed' ? 'completed' : 'failed'}
-                              error={error || null}
+                              progress={getFileProgress(file.name)}
+                              status={getFileStatus(file.name)}
+                              error={getFileError(file.name)}
                             />
                           )}
                         </div>

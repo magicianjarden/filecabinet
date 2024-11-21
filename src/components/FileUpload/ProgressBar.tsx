@@ -3,10 +3,11 @@
 import { Progress } from "@/components/ui/progress"
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils"
+import { ConversionStatus } from "@/types"
 
 interface ProgressBarProps {
   progress: number;
-  status: 'idle' | 'processing' | 'completed' | 'failed';
+  status: ConversionStatus;
   error: string | null;
 }
 
@@ -18,6 +19,8 @@ export function ProgressBar({ progress, status, error }: ProgressBarProps) {
           {status === 'processing' && 'Converting...'}
           {status === 'completed' && 'Conversion complete!'}
           {status === 'failed' && 'Conversion failed'}
+          {status === 'pending' && 'Waiting...'}
+          {status === 'idle' && 'Ready'}
         </span>
         <span>{progress}%</span>
       </div>

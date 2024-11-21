@@ -23,7 +23,7 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/api/:path*',
+        source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Embedder-Policy',
@@ -36,7 +36,7 @@ const nextConfig = {
         ],
       },
     ];
-  },
+  }
 };
 
 module.exports = nextConfig;
