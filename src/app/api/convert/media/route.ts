@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mediaConverter } from '@/lib/converters/media';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,9 +31,6 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': getMimeTypeForFormat(outputFormat),
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
-        'Cross-Origin-Resource-Policy': 'cross-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp',
-        'Cross-Origin-Opener-Policy': 'same-origin',
       },
     });
   } catch (error) {

@@ -1,6 +1,5 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
-import { join } from 'path';
 
 class MediaConverter {
   private ffmpeg: FFmpeg | null = null;
@@ -9,17 +8,11 @@ class MediaConverter {
     if (this.ffmpeg) return this.ffmpeg;
 
     const ffmpeg = new FFmpeg();
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
     
+    // Use direct URLs instead of toBlobURL for Edge compatibility
     await ffmpeg.load({
-      coreURL: await toBlobURL(
-        `${baseURL}/ffmpeg-core.js`,
-        'text/javascript',
-      ),
-      wasmURL: await toBlobURL(
-        `${baseURL}/ffmpeg-core.wasm`,
-        'application/wasm',
-      ),
+      coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+      wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
     });
 
     this.ffmpeg = ffmpeg;
@@ -40,11 +33,13 @@ class MediaConverter {
       const blob = new Blob([buffer], { type: getMimeType(inputFormat) });
       await ffmpeg.writeFile(inputFileName, await fetchFile(blob));
       
-      // Run FFmpeg command
+      // Run FFmpeg command with more specific codec options
       await ffmpeg.exec([
         '-i', inputFileName,
-        '-c:v', 'copy',  // Try to copy video codec if possible
-        '-c:a', 'aac',   // Convert audio to AAC
+        '-c:v', 'libx264', // Use H.264 for video
+        '-c:a', 'aac',     // Use AAC for audio
+        '-preset', 'fast', // Faster encoding
+        '-movflags', '+faststart', // Enable fast start for web playback
         outputFileName
       ]);
       
@@ -64,7 +59,6 @@ class MediaConverter {
   }
 }
 
-// Helper function to get MIME type
 function getMimeType(format: string): string {
   const mimeTypes: Record<string, string> = {
     // Video formats
