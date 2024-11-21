@@ -18,6 +18,7 @@ import { ConversionStats } from '@/lib/types';
 import { getFileCategory } from '@/lib/utils';
 import Link from 'next/link';
 import { getMimeType } from '@/lib/utils/mime-types';
+import { ProgressBar } from './ProgressBar';
 
 interface FileWithStatus {
   file: File;
@@ -100,23 +101,39 @@ export function FileUpload() {
   };
 
   const handleConvert = async () => {
+    // Only convert ready files, keep others in queue
     const readyFiles = fileQueue.filter(item => item.status === 'ready');
-    const pendingFiles = fileQueue.filter(item => item.status === 'pending');
-    setFileQueue(pendingFiles);
+    const otherFiles = fileQueue.filter(item => item.status !== 'ready');
+    
+    // Update queue to show only non-ready files
+    setFileQueue(prev => prev.filter(item => item.status !== 'ready'));
 
     for (const item of readyFiles) {
+      let progressInterval: NodeJS.Timeout;
+      
       try {
-        // Initialize progress for this file
+        // Add file back to queue with processing status
+        setFileQueue(prev => [...prev, { ...item, status: 'processing' }]);
+        
+        // Initialize progress
         setConversionProgress(prev => ({
           ...prev,
           [item.file.name]: 0
         }));
 
-        setFileQueue(prev => prev.map(f => 
-          f.file.name === item.file.name 
-            ? { ...f, status: 'processing' }
-            : f
-        ));
+        // Start progress simulation
+        progressInterval = setInterval(() => {
+          setConversionProgress(prev => {
+            const currentProgress = prev[item.file.name] || 0;
+            if (currentProgress < 90) {
+              return {
+                ...prev,
+                [item.file.name]: currentProgress + 10
+              };
+            }
+            return prev;
+          });
+        }, 300);
 
         const fileCategory = getFileCategory(item.file.name);
         const extension = item.file.name.split('.').pop();
@@ -178,7 +195,20 @@ export function FileUpload() {
             : f
         ));
 
+        // Clear interval and set to 100% when done
+        clearInterval(progressInterval);
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: 100
+        }));
+
       } catch (error) {
+        // Show error state
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: 0
+        }));
+
         console.error('Conversion error:', error);
         const extension = item.file.name.split('.').pop();
         if (!extension) {
@@ -309,43 +339,53 @@ export function FileUpload() {
                         <div 
                           key={file.name} 
                           className={cn(
-                            "flex items-center gap-4 p-3 rounded-lg border transition-colors group",
+                            "flex flex-col gap-4 p-3 rounded-lg border transition-colors group",
                             status === 'pending' && "bg-white/50 border-slate-200",
                             status === 'ready' && "bg-green-50/50 border-green-200",
                             status === 'processing' && "bg-blue-50/50 border-blue-200",
                             status === 'failed' && "bg-red-50/50 border-red-200"
                           )}
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <p className="font-medium text-sm truncate">{file.name}</p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setFileQueue(prev => prev.filter(item => item.file.name !== file.name));
-                                }}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity -my-2 h-8 w-8 p-0 text-slate-500 hover:text-red-600"
-                              >
-                                <X className="h-4 w-4" />
-                                <span className="sr-only">Remove file</span>
-                              </Button>
+                          <div className="flex items-center gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="font-medium text-sm truncate">{file.name}</p>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setFileQueue(prev => prev.filter(item => item.file.name !== file.name));
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity -my-2 h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                                >
+                                  <X className="h-4 w-4" />
+                                  <span className="sr-only">Remove file</span>
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <p className="text-xs text-slate-500">
+                                  {(file.size / 1024 / 1024).toFixed(1)} MB
+                                </p>
+                                {error && (
+                                  <p className="text-xs text-red-500">{error}</p>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <p className="text-xs text-slate-500">
-                                {(file.size / 1024 / 1024).toFixed(1)} MB
-                              </p>
-                              {error && (
-                                <p className="text-xs text-red-500">{error}</p>
-                              )}
-                            </div>
+                            <ConversionOptions
+                              currentFormat={file.name.split('.').pop()?.toLowerCase() || ''}
+                              targetFormat={targetFormat}
+                              onFormatChange={(format) => handleFormatChange(file.name, format)}
+                              file={file}
+                            />
                           </div>
-                          <ConversionOptions
-                            currentFormat={file.name.split('.').pop()?.toLowerCase() || ''}
-                            targetFormat={targetFormat}
-                            onFormatChange={(format) => handleFormatChange(file.name, format)}
-                            file={file}
-                          />
+
+                          {(status === 'processing' || status === 'completed' || status === 'failed') && (
+                            <ProgressBar
+                              progress={conversionProgress[file.name] || 0}
+                              status={status === 'processing' ? 'processing' : status === 'completed' ? 'completed' : 'failed'}
+                              error={error || null}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -355,8 +395,13 @@ export function FileUpload() {
                 <div className="flex justify-between items-center mt-6 pt-6 border-t border-slate-200">
                   <div className="flex items-center gap-3">
                     <Badge variant="secondary" className="text-xs">
-                      {fileQueue.filter(f => f.status === 'ready').length} of {fileQueue.length} ready
+                      {fileQueue.filter(f => f.status === 'ready').length} ready
                     </Badge>
+                    {fileQueue.filter(f => f.status === 'pending').length > 0 && (
+                      <Badge variant="outline" className="text-xs text-orange-500 border-orange-200 bg-orange-50">
+                        {fileQueue.filter(f => f.status === 'pending').length} pending
+                      </Badge>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
