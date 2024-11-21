@@ -1,5 +1,5 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
+import { fetchFile } from '@ffmpeg/util';
 
 class MediaConverter {
   private ffmpeg: FFmpeg | null = null;
@@ -9,10 +9,10 @@ class MediaConverter {
 
     const ffmpeg = new FFmpeg();
     
-    // Use direct URLs instead of toBlobURL for Edge compatibility
+    // Load FFmpeg
     await ffmpeg.load({
       coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-      wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
+      wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm'
     });
 
     this.ffmpeg = ffmpeg;
@@ -21,64 +21,56 @@ class MediaConverter {
 
   async convert(buffer: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {
-      console.log(`Starting conversion from ${inputFormat} to ${outputFormat}`);
+      console.log(`MediaConverter: Starting conversion from ${inputFormat} to ${outputFormat}`);
       
       const ffmpeg = await this.loadFFmpeg();
+      console.log('MediaConverter: FFmpeg loaded');
       
       // Write input file
       const inputFileName = `input.${inputFormat}`;
       const outputFileName = `output.${outputFormat}`;
       
       // Convert Buffer to Blob
-      const blob = new Blob([buffer], { type: getMimeType(inputFormat) });
+      const blob = new Blob([buffer]);
       await ffmpeg.writeFile(inputFileName, await fetchFile(blob));
+      console.log('MediaConverter: Input file written');
+
+      // Determine if this is audio or video
+      const isAudio = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(inputFormat.toLowerCase());
       
-      // Run FFmpeg command with more specific codec options
-      await ffmpeg.exec([
+      // Set conversion options based on type
+      const conversionCommand = isAudio ? [
         '-i', inputFileName,
-        '-c:v', 'libx264', // Use H.264 for video
-        '-c:a', 'aac',     // Use AAC for audio
-        '-preset', 'fast', // Faster encoding
-        '-movflags', '+faststart', // Enable fast start for web playback
+        '-c:a', 'aac',  // Use AAC for audio
         outputFileName
-      ]);
+      ] : [
+        '-i', inputFileName,
+        '-c:v', 'libx264',  // Use H.264 for video
+        '-c:a', 'aac',      // Use AAC for audio
+        '-preset', 'fast',   // Faster encoding
+        outputFileName
+      ];
+
+      console.log('MediaConverter: Starting FFmpeg conversion');
+      await ffmpeg.exec(conversionCommand);
+      console.log('MediaConverter: FFmpeg conversion completed');
       
       // Read the result
       const data = await ffmpeg.readFile(outputFileName);
+      console.log('MediaConverter: Output file read');
       
       // Clean up
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
+      console.log('MediaConverter: Cleanup completed');
       
       // Convert Uint8Array to Buffer
       return Buffer.from(data as Uint8Array);
     } catch (error) {
-      console.error('Media conversion error:', error);
-      throw new Error(`Media conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('MediaConverter error:', error);
+      throw error;
     }
   }
-}
-
-function getMimeType(format: string): string {
-  const mimeTypes: Record<string, string> = {
-    // Video formats
-    'mp4': 'video/mp4',
-    'webm': 'video/webm',
-    'mov': 'video/quicktime',
-    'avi': 'video/x-msvideo',
-    'mkv': 'video/x-matroska',
-    'm4v': 'video/x-m4v',
-    
-    // Audio formats
-    'mp3': 'audio/mpeg',
-    'wav': 'audio/wav',
-    'ogg': 'audio/ogg',
-    'm4a': 'audio/mp4',
-    'flac': 'audio/flac',
-    'aac': 'audio/aac',
-  };
-
-  return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
 }
 
 export const mediaConverter = new MediaConverter(); 
