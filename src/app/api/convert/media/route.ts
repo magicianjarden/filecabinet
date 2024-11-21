@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mediaConverter } from '@/lib/converters/media';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,68 +18,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`Starting media conversion: ${inputFormat} -> ${outputFormat}`);
+    console.log(`File size: ${file.size} bytes`);
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await mediaConverter.convert(buffer, inputFormat, outputFormat);
 
-    // Determine the correct MIME type based on the output format
-    let contentType = 'video/mp4'; // default
-    
-    // Video formats
-    if (['mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v'].includes(outputFormat)) {
-      switch (outputFormat) {
-        case 'mp4':
-          contentType = 'video/mp4';
-          break;
-        case 'webm':
-          contentType = 'video/webm';
-          break;
-        case 'mov':
-          contentType = 'video/quicktime';
-          break;
-        case 'avi':
-          contentType = 'video/x-msvideo';
-          break;
-        default:
-          contentType = 'video/mp4'; // fallback for other video formats
-      }
-    }
-    // Audio formats
-    else if (['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(outputFormat)) {
-      switch (outputFormat) {
-        case 'mp3':
-          contentType = 'audio/mpeg';
-          break;
-        case 'wav':
-          contentType = 'audio/wav';
-          break;
-        case 'ogg':
-          contentType = 'audio/ogg';
-          break;
-        case 'm4a':
-          contentType = 'audio/mp4';
-          break;
-        case 'flac':
-          contentType = 'audio/flac';
-          break;
-        case 'aac':
-          contentType = 'audio/aac';
-          break;
-        default:
-          contentType = 'audio/mpeg'; // fallback for other audio formats
-      }
-    }
+    console.log('Conversion completed successfully');
 
     return new NextResponse(result, {
       headers: {
-        'Content-Type': contentType,
+        'Content-Type': getMimeTypeForFormat(outputFormat),
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
       },
     });
   } catch (error) {
     console.error('Media conversion error:', error);
     return NextResponse.json(
-      { error: 'Failed to convert file' },
+      { error: error instanceof Error ? error.message : 'Failed to convert file' },
       { status: 500 }
     );
   }
+}
+
+function getMimeTypeForFormat(format: string): string {
+  const mimeTypes: Record<string, string> = {
+    // Video formats
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'mov': 'video/quicktime',
+    'avi': 'video/x-msvideo',
+    'mkv': 'video/x-matroska',
+    'm4v': 'video/x-m4v',
+    
+    // Audio formats
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'm4a': 'audio/mp4',
+    'flac': 'audio/flac',
+    'aac': 'audio/aac',
+  };
+
+  return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
 } 

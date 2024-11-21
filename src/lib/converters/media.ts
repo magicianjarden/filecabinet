@@ -1,47 +1,90 @@
-import ffmpeg from 'fluent-ffmpeg';
-import { Readable } from 'stream';
-import { promisify } from 'util';
-import { writeFile, readFile, unlink } from 'fs/promises';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { join } from 'path';
-import { tmpdir } from 'os';
 
 class MediaConverter {
+  private ffmpeg: FFmpeg | null = null;
+
+  private async loadFFmpeg() {
+    if (this.ffmpeg) return this.ffmpeg;
+
+    const ffmpeg = new FFmpeg();
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+    
+    await ffmpeg.load({
+      coreURL: await toBlobURL(
+        `${baseURL}/ffmpeg-core.js`,
+        'text/javascript',
+      ),
+      wasmURL: await toBlobURL(
+        `${baseURL}/ffmpeg-core.wasm`,
+        'application/wasm',
+      ),
+    });
+
+    this.ffmpeg = ffmpeg;
+    return ffmpeg;
+  }
+
   async convert(buffer: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
-    const inputPath = join(tmpdir(), `input.${inputFormat}`);
-    const outputPath = join(tmpdir(), `output.${outputFormat}`);
-
     try {
-      // Write input buffer to temporary file
-      await writeFile(inputPath, buffer);
-
-      // Convert using ffmpeg
-      await new Promise((resolve, reject) => {
-        ffmpeg(inputPath)
-          .toFormat(outputFormat)
-          .on('end', resolve)
-          .on('error', reject)
-          .save(outputPath);
-      });
-
-      // Read the output file
-      const result = await readFile(outputPath);
-
-      // Clean up temporary files
-      await Promise.all([
-        unlink(inputPath).catch(() => {}),
-        unlink(outputPath).catch(() => {})
+      console.log(`Starting conversion from ${inputFormat} to ${outputFormat}`);
+      
+      const ffmpeg = await this.loadFFmpeg();
+      
+      // Write input file
+      const inputFileName = `input.${inputFormat}`;
+      const outputFileName = `output.${outputFormat}`;
+      
+      // Convert Buffer to Blob
+      const blob = new Blob([buffer], { type: getMimeType(inputFormat) });
+      await ffmpeg.writeFile(inputFileName, await fetchFile(blob));
+      
+      // Run FFmpeg command
+      await ffmpeg.exec([
+        '-i', inputFileName,
+        '-c:v', 'copy',  // Try to copy video codec if possible
+        '-c:a', 'aac',   // Convert audio to AAC
+        outputFileName
       ]);
-
-      return result;
+      
+      // Read the result
+      const data = await ffmpeg.readFile(outputFileName);
+      
+      // Clean up
+      await ffmpeg.deleteFile(inputFileName);
+      await ffmpeg.deleteFile(outputFileName);
+      
+      // Convert Uint8Array to Buffer
+      return Buffer.from(data as Uint8Array);
     } catch (error) {
-      // Clean up on error
-      await Promise.all([
-        unlink(inputPath).catch(() => {}),
-        unlink(outputPath).catch(() => {})
-      ]);
-      throw error;
+      console.error('Media conversion error:', error);
+      throw new Error(`Media conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
+}
+
+// Helper function to get MIME type
+function getMimeType(format: string): string {
+  const mimeTypes: Record<string, string> = {
+    // Video formats
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'mov': 'video/quicktime',
+    'avi': 'video/x-msvideo',
+    'mkv': 'video/x-matroska',
+    'm4v': 'video/x-m4v',
+    
+    // Audio formats
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'm4a': 'audio/mp4',
+    'flac': 'audio/flac',
+    'aac': 'audio/aac',
+  };
+
+  return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
 }
 
 export const mediaConverter = new MediaConverter(); 
