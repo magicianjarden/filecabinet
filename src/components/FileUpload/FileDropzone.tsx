@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, X } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { useDropzone } from 'react-dropzone';
+import { getMimeType } from '@/lib/utils/mime-types';
 
 interface FileDropzoneProps {
   files: File[];
@@ -27,12 +28,16 @@ export function FileDropzone({
     onFilesSelect(acceptedFiles);
   }, [onFilesSelect]);
 
+  const acceptTypes = accept ? 
+    accept.split(',').reduce((acc, curr) => ({
+      ...acc,
+      [getMimeType(curr)]: []
+    }), {}) : 
+    undefined;
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: accept ? accept.split(',').reduce((acc, curr) => ({
-      ...acc,
-      [curr]: []
-    }), {}) : undefined,
+    accept: acceptTypes,
     maxSize,
     multiple
   });
