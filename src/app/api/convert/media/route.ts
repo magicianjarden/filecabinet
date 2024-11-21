@@ -22,9 +22,53 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await mediaConverter.convert(buffer, inputFormat, outputFormat);
 
-    const contentType = outputFormat.startsWith('audio/') 
-      ? 'audio/mpeg'
-      : 'video/mp4';
+    // Determine the correct MIME type based on the output format
+    let contentType = 'video/mp4'; // default
+    
+    // Video formats
+    if (['mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v'].includes(outputFormat)) {
+      switch (outputFormat) {
+        case 'mp4':
+          contentType = 'video/mp4';
+          break;
+        case 'webm':
+          contentType = 'video/webm';
+          break;
+        case 'mov':
+          contentType = 'video/quicktime';
+          break;
+        case 'avi':
+          contentType = 'video/x-msvideo';
+          break;
+        default:
+          contentType = 'video/mp4'; // fallback for other video formats
+      }
+    }
+    // Audio formats
+    else if (['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(outputFormat)) {
+      switch (outputFormat) {
+        case 'mp3':
+          contentType = 'audio/mpeg';
+          break;
+        case 'wav':
+          contentType = 'audio/wav';
+          break;
+        case 'ogg':
+          contentType = 'audio/ogg';
+          break;
+        case 'm4a':
+          contentType = 'audio/mp4';
+          break;
+        case 'flac':
+          contentType = 'audio/flac';
+          break;
+        case 'aac':
+          contentType = 'audio/aac';
+          break;
+        default:
+          contentType = 'audio/mpeg'; // fallback for other audio formats
+      }
+    }
 
     return new NextResponse(result, {
       headers: {
