@@ -16,4 +16,18 @@ export function formatFileSize(bytes: number): string {
   }
 
   return `${size.toFixed(1)} ${units[unitIndex]}`;
-} 
+}
+
+export const getFileCategory = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  
+  if (['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'pages'].includes(ext)) return 'Documents';
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'heic'].includes(ext)) return 'Images';
+  if (['mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v'].includes(ext)) return 'Videos';
+  if (['mp3', 'wav', 'aac', 'wma', 'ogg', 'm4a', 'flac'].includes(ext)) return 'Audio';
+  if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'Archives';
+  if (['epub', 'mobi', 'azw3'].includes(ext)) return 'Ebooks';
+  if (['ppt', 'pptx', 'key'].includes(ext)) return 'Presentations';
+  if (['xls', 'xlsx', 'csv', 'numbers'].includes(ext)) return 'Spreadsheets';
+  return 'Other';
+}; 

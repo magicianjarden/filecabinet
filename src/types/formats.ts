@@ -13,7 +13,15 @@ export type ImageOutputFormat = 'jpg' | 'png' | 'webp';
 export type MediaInputFormat = 'mp4' | 'mov' | 'avi' | 'mp3' | 'wav';
 export type MediaOutputFormat = 'mp4' | 'mp3';
 
-export type FileCategory = 'archives' | 'code' | 'documents' | 'images' | 'media';
+export type FileCategory = 
+  | 'documents'
+  | 'images'
+  | 'media'
+  | 'archives'
+  | 'presentations'
+  | 'spreadsheets'
+  | 'ebooks'
+  | 'code';
 
 export interface FormatConfig {
   input: string[];

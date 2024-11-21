@@ -1,10 +1,7 @@
 'use client';
 
-import { Card } from "@/components/ui/card";
-import { FileIcon, Clock, HardDrive } from 'lucide-react';
-import { formatFileSize } from '@/lib/utils/format';
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { settings } from '@/config/settings';
 
 interface ConversionOptionsProps {
   currentFormat: string;
@@ -13,131 +10,100 @@ interface ConversionOptionsProps {
   file: File;
 }
 
-function getAvailableFormats(inputFormat: string): string[] {
-  // Normalize the input format
-  const normalizedFormat = inputFormat.toLowerCase().replace(/^\./, '');
-  
-  // Find which category this format belongs to
-  for (const [category, formats] of Object.entries(settings.supportedFormats)) {
-    if (formats.input.includes(normalizedFormat)) {
-      // Return the available output formats for this category
-      return formats.output;
-    }
-  }
-  
-  return [];
-}
-
-export function ConversionOptions({
-  currentFormat,
-  targetFormat,
-  onFormatChange,
-  file
+export function ConversionOptions({ 
+  currentFormat, 
+  targetFormat, 
+  onFormatChange 
 }: ConversionOptionsProps) {
-  const availableFormats = getAvailableFormats(currentFormat);
-  const lastModified = new Date(file.lastModified).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  // Comprehensive format mapping based on our conversion tools
+  const formatMapping: Record<string, string[]> = {
+    // Documents
+    'pdf': ['doc', 'docx', 'txt', 'rtf', 'odt', 'pages'],
+    'doc': ['pdf', 'docx', 'txt', 'rtf', 'odt'],
+    'docx': ['pdf', 'doc', 'txt', 'rtf', 'odt'],
+    'txt': ['pdf', 'doc', 'docx', 'rtf'],
+    'rtf': ['pdf', 'doc', 'docx', 'txt'],
+    'odt': ['pdf', 'doc', 'docx'],
+    'pages': ['pdf', 'doc', 'docx'],
+
+    // Images
+    'jpg': ['png', 'webp', 'gif', 'bmp', 'tiff', 'pdf', 'heic'],
+    'jpeg': ['png', 'webp', 'gif', 'bmp', 'tiff', 'pdf', 'heic'],
+    'png': ['jpg', 'webp', 'gif', 'bmp', 'tiff', 'pdf', 'heic'],
+    'gif': ['jpg', 'png', 'webp', 'bmp', 'tiff'],
+    'webp': ['jpg', 'png', 'gif', 'bmp', 'tiff'],
+    'bmp': ['jpg', 'png', 'webp', 'gif', 'tiff'],
+    'tiff': ['jpg', 'png', 'webp', 'gif', 'bmp'],
+    'heic': ['jpg', 'png', 'webp'],
+    
+    // Media
+    'mp4': ['mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v'],
+    'mov': ['mp4', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v'],
+    'avi': ['mp4', 'mov', 'wmv', 'flv', 'webm', 'mkv'],
+    'wmv': ['mp4', 'mov', 'avi', 'flv', 'webm'],
+    'flv': ['mp4', 'mov', 'avi', 'wmv', 'webm'],
+    'webm': ['mp4', 'mov', 'avi', 'wmv', 'flv'],
+    'mkv': ['mp4', 'mov', 'avi'],
+    'm4v': ['mp4', 'mov'],
+
+    // Audio
+    'mp3': ['wav', 'aac', 'wma', 'ogg', 'm4a', 'flac'],
+    'wav': ['mp3', 'aac', 'wma', 'ogg', 'm4a', 'flac'],
+    'aac': ['mp3', 'wav', 'wma', 'ogg', 'm4a'],
+    'wma': ['mp3', 'wav', 'aac', 'ogg'],
+    'ogg': ['mp3', 'wav', 'aac', 'wma'],
+    'm4a': ['mp3', 'wav', 'aac'],
+    'flac': ['mp3', 'wav', 'aac'],
+
+    // Archives
+    'zip': ['7z', 'rar', 'tar', 'gz'],
+    'rar': ['zip', '7z', 'tar', 'gz'],
+    '7z': ['zip', 'rar', 'tar', 'gz'],
+    'tar': ['zip', 'rar', '7z', 'gz'],
+    'gz': ['zip', 'rar', '7z', 'tar'],
+
+    // Ebooks
+    'epub': ['pdf', 'mobi', 'azw3'],
+    'mobi': ['epub', 'pdf', 'azw3'],
+    'azw3': ['epub', 'pdf', 'mobi'],
+
+    // Presentations
+    'ppt': ['pdf', 'pptx'],
+    'pptx': ['ppt', 'pdf'],
+
+    // Spreadsheets
+    'xls': ['pdf', 'xlsx', 'csv'],
+    'xlsx': ['xls', 'pdf', 'csv'],
+    'csv': ['xls', 'xlsx', 'pdf'],
+
+    // Key
+    'key': ['pdf', 'pptx'],
+
+    // Add more format mappings as needed
+  };
+
+  // Always show options regardless of current format
+  const options = formatMapping[currentFormat.toLowerCase()] || [];
 
   return (
-    <div className="space-y-5 relative z-20">
-      {/* Current File Info Card */}
-      <Card className="p-3 sm:p-4 border-2 border-green-600 bg-white 
-        shadow-[4px_4px_0px_0px_rgb(22,163,74)] overflow-hidden
-        relative after:absolute after:inset-0 after:bg-gradient-to-r 
-        after:from-green-500/10 after:to-transparent">
-        <div className="flex flex-col sm:flex-row gap-4 relative z-10">
-          {/* File Icon and Name */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-green-50 rounded-lg border-2 border-green-200">
-                <FileIcon className="w-5 h-5 text-green-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-medium text-sm truncate text-slate-600" title={file.name}>
-                  {file.name}
-                </p>
-                <p className="text-xl sm:text-2xl font-black uppercase tracking-tight mt-1 
-                  text-gradient">
-                  {currentFormat}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* File Details */}
-          <div className="flex gap-3">
-            {/* Size */}
-            <div className="flex-1 sm:flex-initial p-2.5 bg-green-50 rounded-lg 
-              border-2 border-green-200">
-              <div className="flex items-center gap-2">
-                <HardDrive className="w-4 h-4 text-green-600" />
-                <p className="text-xs text-slate-600">Size</p>
-              </div>
-              <p className="text-sm font-semibold mt-0.5 text-slate-700">
-                {formatFileSize(file.size)}
-              </p>
-            </div>
-
-            {/* Last Modified */}
-            <div className="flex-1 sm:flex-initial p-2.5 bg-green-50 rounded-lg 
-              border-2 border-green-200">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-green-600" />
-                <p className="text-xs text-slate-600">Modified</p>
-              </div>
-              <p className="text-sm font-semibold mt-0.5 text-slate-700">
-                {lastModified}
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Format Selection */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <p className="text-xs font-semibold text-green-600 uppercase tracking-wider">
-            Convert To
-          </p>
-          <div className="flex-1 h-[2px] bg-gradient-to-r from-green-500/20 to-transparent"></div>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-          {availableFormats.map((format) => (
-            <button
-              key={format}
-              onClick={() => onFormatChange(format)}
-              type="button"
-              className={cn(
-                "py-2.5 px-3 border-2 rounded-lg font-bold uppercase tracking-wider",
-                "transition-all duration-200",
-                "hover:shadow-[4px_4px_0px_0px_rgb(22,163,74)]",
-                "active:shadow-[2px_2px_0px_0px_rgb(22,163,74)]",
-                "active:translate-x-[2px] active:translate-y-[2px]",
-                targetFormat === format
-                  ? "bg-green-600 border-green-600 text-white shadow-none translate-x-[4px] translate-y-[4px]"
-                  : "border-green-600 text-green-600 hover:bg-green-50"
-              )}
-            >
-              <span className="text-base sm:text-lg">{format}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Conversion Info */}
-      {targetFormat && (
-        <div className="p-3 border-2 border-green-200 rounded-lg bg-green-50">
-          <p className="text-xs sm:text-sm text-green-700">
-            Converting <span className="font-semibold">{file.name}</span> from{' '}
-            <span className="font-semibold uppercase">{currentFormat}</span> to{' '}
-            <span className="font-semibold uppercase">{targetFormat}</span>
-          </p>
-        </div>
+    <div className="flex gap-2">
+      {options.length > 0 ? (
+        options.map((format) => (
+          <Button
+            key={format}
+            variant={targetFormat === format ? "default" : "outline"}
+            size="sm"
+            onClick={() => onFormatChange(format)}
+            className={cn(
+              "text-xs font-medium",
+              targetFormat === format && "bg-green-600 hover:bg-green-700",
+            )}
+          >
+            {format.toUpperCase()}
+          </Button>
+        ))
+      ) : (
+        <p>No conversion options available for this file format.</p>
       )}
     </div>
   );

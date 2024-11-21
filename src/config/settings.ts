@@ -17,34 +17,53 @@ export const settings = {
     documents: 25 * 1024 * 1024,  // 25MB
     media: 100 * 1024 * 1024,     // 100MB
     archives: 50 * 1024 * 1024,   // 50MB
-    code: 5 * 1024 * 1024         // 5MB
+    presentations: 25 * 1024 * 1024, // 25MB
+    spreadsheets: 25 * 1024 * 1024,  // 25MB
+    ebooks: 25 * 1024 * 1024,      // 25MB
+    code: 5 * 1024 * 1024,      // 5MB for code files
   },
   supportedFormats: {
     documents: {
-      input: ['docx', 'txt', 'md', 'rtf', 'pdf'],
-      output: ['txt', 'md']
+      input: ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'pages'],
+      output: ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt']
     },
     images: {
-      input: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-      output: ['jpg', 'png', 'webp']
+      input: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'heic'],
+      output: ['jpg', 'png', 'webp', 'gif', 'bmp', 'tiff']
     },
     media: {
       input: [
-        'mp4', 'webm', 'mkv', 'mov', 'avi',
-        'mp3', 'wav', 'aac', 'ogg', 'm4a', 'flac'
+        // Video
+        'mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v',
+        // Audio
+        'mp3', 'wav', 'aac', 'wma', 'ogg', 'm4a', 'flac'
       ],
       output: [
-        'mp4', 'webm', 'mkv', 'mov', 'avi',
-        'mp3', 'wav', 'aac', 'ogg', 'm4a', 'flac'
+        // Video
+        'mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v',
+        // Audio
+        'mp3', 'wav', 'aac', 'wma', 'ogg', 'm4a', 'flac'
       ]
     },
     archives: {
-      input: ['zip'],
-      output: ['zip']
+      input: ['zip', 'rar', '7z', 'tar', 'gz'],
+      output: ['zip', 'rar', '7z', 'tar', 'gz']
+    },
+    presentations: {
+      input: ['ppt', 'pptx', 'key'],
+      output: ['ppt', 'pptx', 'key']
+    },
+    spreadsheets: {
+      input: ['xls', 'xlsx', 'csv'],
+      output: ['xls', 'xlsx', 'csv']
+    },
+    ebooks: {
+      input: ['epub'],
+      output: ['epub']
     },
     code: {
-      input: ['json', 'yaml', 'yml', 'xml', 'csv'],
-      output: ['json', 'yaml', 'xml', 'csv']
+      input: ['json', 'xml'],
+      output: ['json', 'xml']
     }
   } satisfies SupportedFormatsType
 } as const;

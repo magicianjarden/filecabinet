@@ -1,41 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { codeConverter } from '@/lib/converters/code';
-import { trackConversion } from '@/lib/utils/stats-service';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
-
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const formData = await request.formData();
+    const formData = await req.formData();
     const file = formData.get('file') as File;
-    const inputFormat = formData.get('inputFormat') as string;
-    const outputFormat = formData.get('outputFormat') as string;
+    const targetFormat = formData.get('targetFormat') as string;
+    const sourceFormat = file.name.split('.').pop() || '';
 
-    if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+    if (!file || !targetFormat) {
+      return new Response('Missing file or target format', { status: 400 });
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await codeConverter.convert(buffer, inputFormat, outputFormat);
-
-    // Track conversion stats
-    await trackConversion('code', inputFormat, outputFormat, buffer.length);
-
-    return new NextResponse(result, {
+    const convertedFile = await codeConverter(file, sourceFormat, targetFormat);
+    
+    return new Response(convertedFile, {
       headers: {
-        'Content-Type': 'text/plain',
-        'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
+        'Content-Type': convertedFile.type,
       },
     });
   } catch (error) {
     console.error('Code conversion error:', error);
-    return NextResponse.json(
-      { error: 'Failed to convert file' },
+    return new Response(
+      error instanceof Error ? error.message : 'Conversion failed', 
       { status: 500 }
     );
   }

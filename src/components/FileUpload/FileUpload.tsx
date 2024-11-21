@@ -3,225 +3,379 @@
 import { useState, useEffect } from 'react';
 import { FileDropzone } from './FileDropzone';
 import { ConversionOptions } from './ConversionOptions';
-import { ProgressBar } from './ProgressBar';
 import { FileHistory } from '../FileHistory/FileHistory';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ConversionRecord, ConversionStats } from '@/types';
-import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@/lib/constants';
-import { getInitialStats, updateStats } from '@/lib/utils/stats';
-import { Stats } from '@/components/Stats/Stats';
-import { trackConversion } from '@/lib/utils/stats-service';
-import Link from 'next/link';
-import { BarChart3 } from 'lucide-react';
-import { getGlobalStats } from '@/lib/utils/stats-service';
 import { Badge } from "@/components/ui/badge";
+import { ConversionRecord } from '@/types';
+import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@/lib/constants';
+import { cn } from '@/lib/utils';
+import { X, ArrowRight, FileText, Clock, HardDrive, BarChart } from 'lucide-react';
+import { Progress } from "@/components/ui/progress";
+import { kv } from '@vercel/kv';
+import { ConversionStats } from '@/lib/types';
+import { getFileCategory } from '@/lib/utils';
+
+interface FileWithStatus {
+  file: File;
+  targetFormat: string;
+  status: 'pending' | 'ready' | 'processing' | 'completed' | 'failed';
+  error?: string;
+}
+
+const getUniqueFormats = (formatMapping: Record<string, string[]>) => {
+  const formats = new Set<string>();
+  
+  // Add all source formats
+  Object.keys(formatMapping).forEach(format => formats.add(format));
+  
+  // Add all target formats
+  Object.values(formatMapping).flat().forEach(format => formats.add(format));
+  
+  return Array.from(formats);
+};
 
 export function FileUpload() {
-  const [file, setFile] = useState<File | null>(null);
-  const [targetFormat, setTargetFormat] = useState<string>('');
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'processing' | 'completed' | 'failed'>('idle');
-  const [error, setError] = useState<string | null>(null);
+  const [fileQueue, setFileQueue] = useState<FileWithStatus[]>([]);
   const [history, setHistory] = useState<ConversionRecord[]>([]);
-  const [stats, setStats] = useState<ConversionStats>(getInitialStats());
+  const [stats, setStats] = useState<ConversionStats>({
+    totalConversions: 0,
+    todayConversions: 0,
+    totalStorage: 0,
+    successfulConversions: 0
+  });
 
-  const fetchAndUpdateStats = async () => {
-    try {
-      const globalStats = await getGlobalStats();
-      setStats(globalStats);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
+  // Fetch stats on component mount
   useEffect(() => {
-    // Fetch initial stats
-    fetchAndUpdateStats();
-
-    // Set up periodic refresh (every 30 seconds)
-    const interval = setInterval(fetchAndUpdateStats, 30000);
-
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
+    async function fetchStats() {
+      try {
+        const kvStats = await kv.hgetall('conversion_stats');
+        if (kvStats) {
+          setStats({
+            totalConversions: (kvStats.totalConversions as number) || 0,
+            todayConversions: (kvStats.todayConversions as number) || 0,
+            totalStorage: (kvStats.totalStorage as number) || 0,
+            successfulConversions: (kvStats.successfulConversions as number) || 0
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      }
+    }
+    fetchStats();
   }, []);
 
-  const handleStatsUpdate = async (
-    file: File,
-    success: boolean,
-    conversionTime?: number
-  ) => {
-    try {
-      await trackConversion(
-        'unknown',
-        'unknown',
-        file.type,
-        file.size,
-        success,
-        conversionTime || 0
-      );
-      const globalStats = await getGlobalStats();
-      setStats(globalStats);
-    } catch (error) {
-      console.error('Error updating stats:', error);
+  const handleFilesSelected = (newFiles: File[]) => {
+    const newFileQueue = newFiles.map(file => ({
+      file,
+      targetFormat: '',
+      status: 'pending' as const,
+    }));
+    setFileQueue(prev => [...prev, ...newFileQueue]);
+  };
+
+  const handleFormatChange = (fileName: string, format: string) => {
+    setFileQueue(prev => prev.map(item => 
+      item.file.name === fileName 
+        ? { ...item, targetFormat: format, status: 'ready' }
+        : item
+    ));
+  };
+
+  const handleConvert = async () => {
+    // Get only files that are ready to convert
+    const readyFiles = fileQueue.filter(item => item.status === 'ready');
+    
+    // Keep pending files in the queue
+    const pendingFiles = fileQueue.filter(item => item.status === 'pending');
+    setFileQueue(pendingFiles);
+
+    // Convert ready files
+    for (const item of readyFiles) {
+      try {
+        setFileQueue(prev => prev.map(f => 
+          f.file.name === item.file.name 
+            ? { ...f, status: 'processing' }
+            : f
+        ));
+
+        // Your conversion logic here
+        const formData = new FormData();
+        formData.append('file', item.file);
+        formData.append('targetFormat', item.targetFormat);
+
+        const response = await fetch('/api/convert', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error('Conversion failed');
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Add to history
+        setHistory(prev => [{
+          id: Date.now().toString(),
+          fileName: item.file.name,
+          originalFormat: item.file.name.split('.').pop() || '',
+          targetFormat: item.targetFormat,
+          fileSize: item.file.size,
+          timestamp: new Date().toISOString(),
+          downloadUrl: url,
+          status: 'completed'
+        }, ...prev]);
+
+        // Update stats
+        updateStats(item.file.size);
+
+      } catch (error) {
+        // If conversion fails, put the file back in queue as pending
+        setFileQueue(prev => [...prev, {
+          ...item,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Conversion failed'
+        }]);
+      }
     }
   };
 
-  const handleConversion = async (file: File) => {
-    console.log('Starting conversion', { file, targetFormat });
-    const startTime = Date.now();
-    setStatus('processing');
-    setProgress(0);
-    setError(null);
-    
-    let progressInterval: NodeJS.Timeout | undefined;
-    
+  // Update stats after successful conversion
+  const updateStats = async (fileSize: number) => {
     try {
-      progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 90) {
-            return prev;
-          }
-          return prev + 5;
-        });
-      }, 200);
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('targetFormat', targetFormat);
-
-      const response = await fetch('/api/convert', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      if (progressInterval) clearInterval(progressInterval);
-      
-      const blob = await response.blob();
-      setProgress(100);
-      setStatus('completed');
-
-      // Download handling
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `converted.${targetFormat}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      // After successful conversion, add to history
-      const newRecord: ConversionRecord = {
-        id: Date.now().toString(),
-        fileName: file.name,
-        originalFormat: file.name.split('.').pop() || '',
-        targetFormat,
-        timestamp: new Date().toISOString(),
-        fileSize: file.size,
-        downloadUrl: url, // Store the blob URL
-        status: 'completed'
+      const newStats = {
+        totalConversions: stats.totalConversions + 1,
+        todayConversions: stats.todayConversions + 1,
+        totalStorage: stats.totalStorage + fileSize,
+        successfulConversions: stats.successfulConversions + 1
       };
 
-      setHistory(prev => [newRecord, ...prev].slice(0, 10)); // Keep last 10 conversions
-
-      // Reset after successful conversion
-      setTimeout(() => {
-        setProgress(0);
-        setStatus('idle');
-        setFile(null);
-        setTargetFormat('');
-      }, 2000);
-
+      // Update KV store
+      await kv.hset('conversion_stats', newStats);
+      setStats(newStats);
     } catch (error) {
-      console.error('Conversion error:', error);
-      if (progressInterval) clearInterval(progressInterval);
-      setStatus('failed');
-      setProgress(0);
-      setError(error instanceof Error ? error.message : 'Conversion failed');
-    }
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    console.log('Form submitted', { file, targetFormat }); // Debug log
-    
-    setError(null);
-    
-    if (!file || !targetFormat) {
-      setError('Please select a file and target format');
-      return;
-    }
-
-    try {
-      await handleConversion(file);
-    } catch (error) {
-      console.error('Conversion error:', error); // Debug log
-      setError('Conversion failed');
+      console.error('Failed to update stats:', error);
     }
   };
 
   return (
     <div className="container mx-auto p-4 space-y-6 max-w-7xl">
-      <Card className="relative border-2 border-green-600 bg-white overflow-hidden">
-        <div className="relative z-10">
-          <CardHeader>
-            <CardTitle className="text-2xl font-black tracking-tight text-gradient">
-                Convert Files
-            </CardTitle>
-            <p className="text-sm text-slate-600 mt-1">
-              quickly and securely - no account required
-            </p>
+      <Card className="border-2 border-green-600/20 hover:border-green-600/40 transition-colors bg-white/50 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl font-black tracking-tight bg-gradient-to-br from-slate-900 to-slate-700 bg-clip-text text-transparent">
+            Convert Files
+          </CardTitle>
+          <p className="text-sm text-slate-600">
+            quickly and securely - no account required
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            <FileDropzone
+              files={fileQueue.map(f => f.file)}
+              onFilesSelect={handleFilesSelected}
+              accept={Object.values(SUPPORTED_FORMATS).flat().join(',')}
+              maxSize={MAX_FILE_SIZE}
+              multiple={true}
+            />
+
+            {fileQueue.length > 0 && (
+              <>
+                <Separator className="my-6 bg-gradient-to-r from-green-600/20 to-transparent" />
+                
+                {Object.entries(
+                  fileQueue.reduce((acc, item) => {
+                    const category = getFileCategory(item.file.name);
+                    if (!acc[category]) acc[category] = [];
+                    acc[category].push(item);
+                    return acc;
+                  }, {} as Record<string, typeof fileQueue>)
+                ).map(([category, files]) => (
+                  <div key={category} className="mb-6 last:mb-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium text-slate-900">
+                          {category}
+                        </h3>
+                        <Badge variant="secondary" className="text-xs">
+                          {files.length}
+                        </Badge>
+                      </div>
+                      
+                      {/* More subtle batch action */}
+                      {files.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const commonFormat = files
+                              .filter(f => f.targetFormat)
+                              .reduce((acc, curr) => {
+                                acc[curr.targetFormat] = (acc[curr.targetFormat] || 0) + 1;
+                                return acc;
+                              }, {} as Record<string, number>);
+
+                            const bestFormat = Object.entries(commonFormat)
+                              .sort(([,a], [,b]) => b - a)[0]?.[0];
+
+                            if (bestFormat) {
+                              setFileQueue(prev => prev.map(item => 
+                                files.includes(item) && !item.targetFormat
+                                  ? { ...item, targetFormat: bestFormat, status: 'ready' }
+                                  : item
+                              ));
+                            }
+                          }}
+                          className="text-xs text-slate-500 hover:text-slate-900"
+                        >
+                          Match formats
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      {files.map(({ file, targetFormat, status, error }) => (
+                        <div 
+                          key={file.name} 
+                          className={cn(
+                            "flex items-center gap-4 p-3 rounded-lg border transition-colors group",
+                            status === 'pending' && "bg-white/50 border-slate-200",
+                            status === 'ready' && "bg-green-50/50 border-green-200",
+                            status === 'processing' && "bg-blue-50/50 border-blue-200",
+                            status === 'failed' && "bg-red-50/50 border-red-200"
+                          )}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium text-sm truncate">{file.name}</p>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setFileQueue(prev => prev.filter(item => item.file.name !== file.name));
+                                }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity -my-2 h-8 w-8 p-0 text-slate-500 hover:text-red-600"
+                              >
+                                <X className="h-4 w-4" />
+                                <span className="sr-only">Remove file</span>
+                              </Button>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-xs text-slate-500">
+                                {(file.size / 1024 / 1024).toFixed(1)} MB
+                              </p>
+                              {error && (
+                                <p className="text-xs text-red-500">{error}</p>
+                              )}
+                            </div>
+                          </div>
+                          <ConversionOptions
+                            currentFormat={file.name.split('.').pop()?.toLowerCase() || ''}
+                            targetFormat={targetFormat}
+                            onFormatChange={(format) => handleFormatChange(file.name, format)}
+                            file={file}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="flex justify-between items-center mt-6 pt-6 border-t border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary" className="text-xs">
+                      {fileQueue.filter(f => f.status === 'ready').length} of {fileQueue.length} ready
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFileQueue([])}
+                      className="text-xs text-slate-500 hover:text-red-600"
+                    >
+                      Clear Queue
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={handleConvert}
+                    disabled={!fileQueue.some(f => f.status === 'ready')}
+                    className={cn(
+                      "bg-green-600 hover:bg-green-700 text-white",
+                      "disabled:bg-slate-200 disabled:text-slate-500"
+                    )}
+                  >
+                    Convert {fileQueue.filter(f => f.status === 'ready').length} Files
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-2 border-green-600/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Conversions</CardTitle>
+            <FileText className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <FileDropzone
-                file={file}
-                onFileSelect={setFile}
-                accept={Object.values(SUPPORTED_FORMATS).flat().join(',')}
-                maxSize={MAX_FILE_SIZE}
-              />
-
-              {file && (
-                <>
-                  <Separator className="my-6 bg-gradient-to-r from-rose-500/20 to-transparent" />
-                  <ConversionOptions
-                    currentFormat={file.name.split('.').pop()?.toLowerCase() || ''}
-                    targetFormat={targetFormat}
-                    onFormatChange={setTargetFormat}
-                    file={file}
-                  />
-                </>
-              )}
-
-              {progress > 0 && (
-                <>
-                  <Separator className="my-6 bg-gradient-to-r from-rose-500/20 to-transparent" />
-                  <ProgressBar 
-                    progress={progress}
-                    status={status}
-                    error={error}
-                  />
-                </>
-              )}
-
-              <Button
-                type="submit"
-                disabled={!file || !targetFormat || status === 'processing'}
-                className="w-full"
-              >
-                {status === 'processing' ? 'Converting...' : 'Convert File'}
-              </Button>
-            </form>
+            <div className="text-2xl font-bold">{history.length}</div>
+            <p className="text-xs text-muted-foreground">
+              +{history.filter(h => 
+                new Date(h.timestamp).getTime() > Date.now() - 24 * 60 * 60 * 1000
+              ).length} today
+            </p>
           </CardContent>
-        </div>
-      </Card>
+        </Card>
+
+        <Card className="border-2 border-green-600/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Files Ready</CardTitle>
+            <Clock className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {fileQueue.filter(f => f.status === 'ready').length}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              of {fileQueue.length} in queue
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-green-600/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Storage Saved</CardTitle>
+            <HardDrive className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {(history.reduce((acc, curr) => acc + curr.fileSize, 0) / (1024 * 1024)).toFixed(1)}MB
+            </div>
+            <p className="text-xs text-muted-foreground">
+              across all conversions
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-green-600/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <BarChart className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {history.length > 0 
+                ? Math.round((history.filter(h => h.status === 'completed').length / history.length) * 100)
+                : 0}%
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {history.filter(h => h.status === 'completed').length} successful
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {history.length > 0 && (
         <Card className="border border-slate-200 bg-white/50 backdrop-blur-sm">
@@ -230,11 +384,14 @@ export function FileUpload() {
               <CardTitle className="text-lg font-semibold text-slate-900">
                 Recent Conversions
               </CardTitle>
-              <Badge variant="secondary" className="text-xs">
+              <Badge 
+                variant="secondary" 
+                className="bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+              >
                 {history.length} {history.length === 1 ? 'file' : 'files'}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               Your conversion history for this session
             </p>
           </CardHeader>
@@ -252,47 +409,6 @@ export function FileUpload() {
             />
           </CardContent>
         </Card>
-      )}
-
-      {stats && (
-        <div className="bg-slate-50 rounded-xl p-4 sm:p-6 border border-slate-100">
-          <div className="space-y-2 mb-4 sm:mb-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-10">
-              <div className="flex-1 space-y-1 sm:space-y-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg sm:text-xl font-semibold text-slate-900">
-                    Global Statistics
-                  </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Sitewide
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600 mt-1">
-                  Overall platform performance and conversion metrics
-                </p>
-              </div>
-              
-              <Link
-                href="/stats"
-                className="group flex items-center gap-2.5 px-3.5 py-2 rounded-lg border border-green-100 bg-white hover:bg-green-50 transition-all duration-200 w-full sm:w-auto justify-center sm:justify-start"
-              >
-                <BarChart3 className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-600">
-                  View Analytics
-                </span>
-                <span className="text-green-600 transition-transform group-hover:translate-x-1 duration-200">
-                  →
-                </span>
-              </Link>
-            </div>
-          </div>
-          <Stats
-            totalConversions={stats.totalConversions}
-            totalSize={stats.totalSize}
-            averageTime={stats.averageTime}
-            conversionRate={stats.conversionRate}
-          />
-        </div>
       )}
     </div>
   );
