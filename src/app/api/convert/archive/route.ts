@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiveConverter } from '@/lib/converters/archive';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
