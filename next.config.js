@@ -39,7 +39,13 @@ const nextConfig = {
     unoptimized: true
   },
   experimental: {
-    // Remove serverActions since it's now default
+    serverComponentsExternalPackages: ['cross-spawn', 'spawn-sync', 'gm', 'less', 'swagger-jsdoc'],
+  },
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals.push('cross-spawn', 'spawn-sync', 'gm', 'less', 'swagger-jsdoc');
+    }
+    return config;
   }
 };
 
