@@ -61,6 +61,7 @@
     "sharp": "0.33.2",
     "sonner": "^1.7.0",
     "tailwind-merge": "2.2.1",
+    "tar": "^7.4.3",
     "yaml": "^2.6.1"
   },
   "devDependencies": {
