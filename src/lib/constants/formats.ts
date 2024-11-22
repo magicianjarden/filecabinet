@@ -1,13 +1,13 @@
 export const FORMAT_MAPPING: Record<string, string[]> = {
   // Documents
-  'pdf': ['doc', 'docx', 'txt', 'rtf', 'odt', 'pages'],
+  'pdf': ['txt', 'json', 'png'],
   'doc': ['pdf', 'docx', 'txt', 'rtf', 'odt'],
   'docx': ['pdf', 'txt'],
   'txt': ['pdf'],
   'rtf': ['pdf', 'doc', 'docx', 'txt'],
   'odt': ['pdf', 'doc', 'docx'],
   'pages': ['pdf', 'doc', 'docx'],
-  'md': ['pdf', 'txt'],
+  'md': ['pdf', 'txt', 'html'],
 
   // Images - what Sharp actually supports
   'jpg': ['png', 'webp', 'avif'],
@@ -52,11 +52,37 @@ export const FORMAT_MAPPING: Record<string, string[]> = {
   'xlsx': ['xls', 'pdf', 'csv'],
   'csv': ['xls', 'xlsx', 'pdf'],
 
-  // Code formats
-  'json': ['xml', 'yaml'],
-  'xml': ['json', 'yaml'],
-  'yaml': ['json', 'xml'],
-  'toml': ['json', 'yaml']
+  // Code formats - Enhanced
+  'json': ['xml', 'yaml', 'toml'],
+  'xml': ['json', 'yaml', 'toml'],
+  'yaml': ['json', 'xml', 'toml'],
+  'toml': ['json', 'yaml', 'xml'],
+  
+  // TypeScript/JavaScript
+  'ts': ['js'],
+  'tsx': ['js', 'jsx'],
+  'jsx': ['js'],
+  
+  // CSS Preprocessors
+  'scss': ['css'],
+  'less': ['css'],
+  'sass': ['css'],
+  
+  // Build Configs
+  'rollup.config.js': ['webpack.config.js', 'vite.config.js'],
+  'webpack.config.js': ['rollup.config.js', 'vite.config.js'],
+  'vite.config.js': ['rollup.config.js', 'webpack.config.js'],
+  
+  // Package Managers
+  'package.json': ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'],
+  'yarn.lock': ['package-lock.json', 'pnpm-lock.yaml'],
+  'pnpm-lock.yaml': ['package-lock.json', 'yarn.lock'],
+  
+  // Config Files
+  '.babelrc': ['babel.config.js', 'babel.config.json'],
+  'tsconfig.json': ['jsconfig.json'],
+  '.eslintrc': ['.eslintrc.js', '.eslintrc.json', '.eslintrc.yaml'],
+  '.prettierrc': ['.prettierrc.js', '.prettierrc.json', '.prettierrc.yaml']
 };
 
 // Helper function to get all supported formats

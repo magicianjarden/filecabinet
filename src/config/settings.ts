@@ -24,8 +24,8 @@ export const settings = {
   } as const,
   supportedFormats: {
     documents: {
-      input: ['docx', 'txt', 'md'],
-      output: ['pdf', 'txt']
+      input: ['docx', 'txt', 'md', 'pdf', 'html', 'rtf', 'odt'],
+      output: ['pdf', 'txt', 'html', 'png', 'json', 'docx']
     },
     images: {
       input: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'tiff'],
@@ -62,8 +62,8 @@ export const settings = {
       output: ['epub']
     },
     code: {
-      input: ['json', 'xml', 'yaml', 'toml'],
-      output: ['json', 'xml', 'yaml']
+      input: ['json', 'xml', 'yaml', 'toml', 'ts', 'js', 'jsx', 'tsx', 'css', 'scss', 'less'],
+      output: ['json', 'xml', 'yaml', 'js', 'css']
     }
   } satisfies SupportedFormatsType
 } as const;
@@ -105,20 +105,31 @@ export function isValidFormat(format: string): boolean {
   );
 }
 
-// Helper to get mime type for format
+// Updated MIME types
 export function getMimeType(format: string): string {
   const normalized = normalizeFormat(format);
   const mimeTypes: Record<string, string> = {
-    pdf: 'application/pdf',
-    doc: 'application/msword',
+    // Document formats
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    odt: 'application/vnd.oasis.opendocument.text',
-    rtf: 'application/rtf',
+    doc: 'application/msword',
     txt: 'text/plain',
     md: 'text/markdown',
+    markdown: 'text/markdown',
+    html: 'text/html',
+    htm: 'text/html',
+    xhtml: 'application/xhtml+xml',
+    pdf: 'application/pdf',
     tex: 'application/x-tex',
-    epub: 'application/epub+zip',
+    rtf: 'application/rtf',
+    odt: 'application/vnd.oasis.opendocument.text',
+    ott: 'application/vnd.oasis.opendocument.text-template',
+    odm: 'application/vnd.oasis.opendocument.text-master',
+    dot: 'application/msword',
+    dotx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+    dotm: 'application/vnd.ms-word.template.macroEnabled.12',
     pages: 'application/x-iwork-pages-sffpages',
+
+    // Image formats
     jpg: 'image/jpeg',
     jpeg: 'image/jpeg',
     png: 'image/png',
@@ -129,6 +140,8 @@ export function getMimeType(format: string): string {
     tiff: 'image/tiff',
     heic: 'image/heic',
     raw: 'image/x-raw',
+
+    // Media formats
     mp4: 'video/mp4',
     mov: 'video/quicktime',
     avi: 'video/x-msvideo',
@@ -146,6 +159,8 @@ export function getMimeType(format: string): string {
     flac: 'audio/flac',
     m4a: 'audio/mp4',
     aiff: 'audio/x-aiff',
+
+    // Archive formats
     zip: 'application/zip',
     rar: 'application/x-rar-compressed',
     '7z': 'application/x-7z-compressed',
@@ -155,6 +170,8 @@ export function getMimeType(format: string): string {
     xz: 'application/x-xz',
     iso: 'application/x-iso9660-image',
     cab: 'application/vnd.ms-cab-compressed',
+
+    // Code formats
     json: 'application/json',
     yaml: 'application/yaml',
     yml: 'application/yaml',
@@ -162,7 +179,26 @@ export function getMimeType(format: string): string {
     csv: 'text/csv',
     toml: 'application/toml',
     ini: 'text/plain',
-    properties: 'text/plain'
+    properties: 'text/plain',
+    js: 'application/javascript',
+    mjs: 'application/javascript',
+    jsx: 'text/jsx',
+    ts: 'application/typescript',
+    tsx: 'text/tsx',
+    css: 'text/css',
+    scss: 'text/x-scss',
+    less: 'text/x-less',
+    sass: 'text/x-sass',
+
+    // Config files
+    'package.json': 'application/json',
+    'package-lock.json': 'application/json',
+    'yarn.lock': 'text/yaml',
+    'pnpm-lock.yaml': 'text/yaml',
+    '.babelrc': 'application/json',
+    'tsconfig.json': 'application/json',
+    '.eslintrc': 'application/json',
+    '.prettierrc': 'application/json'
   };
   
   return mimeTypes[normalized] || 'application/octet-stream';

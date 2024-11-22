@@ -33,6 +33,13 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  output: 'standalone',
+  images: {
+    unoptimized: true
+  },
+  experimental: {
+    // Remove serverActions since it's now default
   }
 };
 
