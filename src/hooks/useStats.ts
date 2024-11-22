@@ -9,11 +9,14 @@ export function useStats() {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
+      
+      return await response.json();
     } catch (error) {
       console.error('Failed to increment stats:', error);
-      // Optionally show user feedback
+      return null;
     }
   };
 
