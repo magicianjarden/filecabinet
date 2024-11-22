@@ -2,20 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import { getGlobalStats } from "@/lib/utils/stats-service";
-import { ConversionStats } from "@/types";
-import { getInitialStats } from "@/lib/utils/stats";
+import { ConversionStats } from "@/types/stats";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SizeAnalytics } from "@/components/Stats/SizeAnalytics";
 import { FormatAnalytics } from "@/components/Stats/FormatAnalytics";
 import { PerformanceMetrics } from "@/components/Stats/PerformanceMetrics";
 import { ConversionTrends } from "@/components/Stats/ConversionTrends";
-import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function StatsPage() {
-  const [stats, setStats] = useState<ConversionStats>(getInitialStats());
+  const [stats, setStats] = useState<ConversionStats>({
+    totalConversions: 0,
+    successfulConversions: 0,
+    failedConversions: 0,
+    totalSize: 0,
+    averageTime: 0,
+    conversionRate: 0,
+    conversionTimes: [],
+    byFormat: {},
+    bySize: {},
+    hourlyActivity: {},
+    successRate: 0,
+    lastUpdated: new Date().toISOString(),
+    popularConversions: []
+  });
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -23,11 +35,7 @@ export default function StatsPage() {
     try {
       setIsRefreshing(true);
       const data = await getGlobalStats();
-      setStats({
-        ...data,
-        todayConversions: 0,
-        totalStorage: 0
-      } as ConversionStats);
+      setStats(data);
     } catch (error) {
       console.error('Error fetching stats:', error);
     } finally {
@@ -47,9 +55,7 @@ export default function StatsPage() {
       <div className="container mx-auto py-8 space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Conversion Statistics</h1>
-          <p className="text-sm text-muted-foreground">
-            Last updated: {new Date(stats.lastUpdated).toLocaleTimeString()}
-          </p>
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
         <div className="space-y-8">
           <Skeleton className="h-[400px] w-full" />
@@ -61,7 +67,6 @@ export default function StatsPage() {
 
   return (
     <div className="container mx-auto py-8 space-y-8">
-      {/* Navigation */}
       <div className="flex items-center justify-between">
         <Link href="/">
           <Button variant="ghost" size="sm" className="gap-2">
@@ -71,7 +76,6 @@ export default function StatsPage() {
         </Link>
       </div>
 
-      {/* Page Title */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Conversion Statistics</h1>
         <p className="text-sm text-muted-foreground">
@@ -79,7 +83,6 @@ export default function StatsPage() {
         </p>
       </div>
 
-      {/* Stats Content */}
       <div className="grid gap-8">
         <ConversionTrends 
           hourlyActivity={stats.hourlyActivity}
@@ -95,7 +98,7 @@ export default function StatsPage() {
         
         <SizeAnalytics 
           bySize={stats.bySize}
-          totalSize={stats.totalStorage}
+          totalSize={stats.totalSize}
           isLoading={isRefreshing}
         />
         

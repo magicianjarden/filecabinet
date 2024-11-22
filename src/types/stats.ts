@@ -1,24 +1,19 @@
 export interface ConversionStats {
-  id: string;
-  timestamp: string;
-  inputFormat: string;
-  outputFormat: string;
-  fileSize: number;
-  conversionTime: number;
-  success: boolean;
-}
-
-export interface DailyStats {
-  date: string;
-  conversions: number;
-  avgTime: number;
-  successRate: number;
-}
-
-export interface StatsResponse {
   totalConversions: number;
-  successRate: number;
+  successfulConversions: number;
+  failedConversions: number;
+  totalSize: number;
   averageTime: number;
-  dailyStats: DailyStats[];
-  recentConversions: ConversionStats[];
+  conversionRate: number;
+  conversionTimes: number[];
+  byFormat: Record<string, number>;
+  bySize: Record<string, number>;
+  hourlyActivity: Record<string, number>;
+  successRate: number;
+  lastUpdated: string;
+  popularConversions: Array<{
+    from: string;
+    to: string;
+    count: number;
+  }>;
 } 

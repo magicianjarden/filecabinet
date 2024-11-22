@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { archiveConverter } from '@/lib/converters/archive';
+import { updateConversionStats } from '@/lib/utils/stats';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,8 +20,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const startTime = Date.now();
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await archiveConverter.convert(buffer, inputFormat, outputFormat);
+    await updateConversionStats(
+      'archive',
+      inputFormat,
+      outputFormat,
+      buffer.length,
+      true,
+      Date.now() - startTime
+    );
 
     return new NextResponse(result, {
       headers: {
