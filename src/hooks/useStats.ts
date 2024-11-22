@@ -3,13 +3,17 @@ export function useStats() {
     try {
       const response = await fetch('/api/stats/increment', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
       
       if (!response.ok) {
-        console.error('Failed to increment stats:', await response.text());
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
     } catch (error) {
       console.error('Failed to increment stats:', error);
+      // Optionally show user feedback
     }
   };
 
