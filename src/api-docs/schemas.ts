@@ -17,7 +17,7 @@ export const commonSchemas = {
       progress: { type: 'number' },
       status: { 
         type: 'string',
-        enum: ['pending', 'processing', 'completed', 'failed']
+        enum: ['pending', 'processing', 'completed', 'failed',]
       },
       message: { type: 'string' },
     },

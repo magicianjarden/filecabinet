@@ -44,7 +44,7 @@ export function FileHistory({ records, onDownload }: FileHistoryProps) {
               <TableCell>
                 <div className="flex items-center space-x-2 text-sm">
                   <Badge variant="secondary" className="uppercase">
-                    {record.originalFormat}
+                    {record.fileName.split('.').pop()}
                   </Badge>
                   <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   <Badge variant="secondary" className="uppercase">

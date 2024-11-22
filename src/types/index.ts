@@ -2,12 +2,10 @@
 export interface ConversionRecord {
     fileName: string;
     fileSize: number;
-    originalFormat: string;
     targetFormat: string;
-    timestamp: string;
     status: 'completed' | 'failed';
+    timestamp: string;
     downloadUrl?: string;
-    category?: string;
     error?: string;
   }
   
@@ -99,4 +97,12 @@ export interface SupportedFormats {
 }
   
 export type ConversionStatus = 'idle' | 'pending' | 'processing' | 'completed' | 'failed';
+  
+export interface ConversionProgress {
+  [fileName: string]: {
+    progress: number;
+    status: ConversionStatus;
+    error: string | null;
+  }
+}
   

@@ -12,24 +12,38 @@ interface ConversionRecord {
   error?: string;
 }
 
+// Consider adding caching to prevent frequent KV access
+const CACHE_TTL = 60 * 1000; // 1 minute
+let statsCache = {
+  data: {} as { totalConversions: number; totalSize: number; },
+  timestamp: 0
+};
+
 export async function GET() {
   try {
-    const [totalConversions, totalSize, successfulConversions, history] = await Promise.all([
+    // Check cache first
+    if (Date.now() - statsCache.timestamp < CACHE_TTL) {
+      return NextResponse.json(statsCache.data);
+    }
+
+    const stats = await Promise.all([
       kv.get<number>('total_conversions'),
       kv.get<number>('total_size'),
       kv.get<number>('successful_conversions'),
       kv.get<ConversionRecord[]>('conversion_history')
     ]);
 
-    return NextResponse.json({
-      totalConversions: totalConversions || 0,
-      totalSize: totalSize || 0,
-      todayConversions: 0,
-      successRate: totalConversions 
-        ? Math.round((successfulConversions || 0) / totalConversions * 100) 
-        : 0,
-      history: history || []
-    });
+    // Update cache
+    statsCache = {
+      data: {
+        totalConversions: stats[0] || 0,
+        totalSize: stats[1] || 0,
+        // ... other stats
+      },
+      timestamp: Date.now()
+    };
+
+    return NextResponse.json(statsCache.data);
   } catch (error) {
     console.error('Failed to fetch stats:', error);
     return NextResponse.json({
