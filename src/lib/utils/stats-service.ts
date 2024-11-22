@@ -1,6 +1,23 @@
 import { kv } from '@vercel/kv';
 import { ConversionStats } from '@/types/stats';
 
+const getDefaultStats = (): ConversionStats => ({
+  totalConversions: 0,
+  todayConversions: 0,
+  totalSize: 0,
+  successfulConversions: 0,
+  failedConversions: 0,
+  averageTime: 0,
+  conversionRate: 0,
+  conversionTimes: [],
+  byFormat: {},
+  bySize: {},
+  hourlyActivity: {},
+  successRate: 0,
+  lastUpdated: new Date().toISOString(),
+  popularConversions: []
+});
+
 function getSizeBucket(size: number): string {
   const MB = 1024 * 1024;
   if (size < MB) return '< 1MB';
@@ -27,82 +44,103 @@ export async function trackConversion(
   success = true,
   duration = 0
 ) {
-  const timestamp = Date.now();
-  const date = new Date().toISOString().split('T')[0];
-  const hour = new Date().getHours();
-  
-  await Promise.all([
-    // Increment total conversions
-    kv.hincrby('stats:totals', 'conversions', 1),
-    kv.hincrby('stats:totals', success ? 'successful' : 'failed', 1),
-    kv.hincrby('stats:totals', 'total_size', fileSize),
+  try {
+    // Check if KV is available
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      console.warn('Vercel KV not configured, skipping stats tracking');
+      return;
+    }
+
+    const timestamp = Date.now();
+    const date = new Date().toISOString().split('T')[0];
+    const hour = new Date().getHours();
     
-    // Track format combinations
-    kv.hincrby(`stats:formats:${type}`, `${inputFormat}_to_${outputFormat}`, 1),
-    
-    // Store conversion event
-    kv.lpush('stats:recent', {
-      timestamp,
-      type,
-      inputFormat,
-      outputFormat,
-      fileSize,
-      duration,
-      success
-    }),
-    
-    // Update daily and hourly stats
-    kv.hincrby(`stats:daily:${date}`, type, 1),
-    kv.hincrby('stats:hourly', hour.toString(), 1),
-    
-    // Track size distribution
-    kv.hincrby('stats:sizes', getSizeBucket(fileSize), 1),
-    
-    // Track duration
-    kv.lpush('stats:durations', duration)
-  ]);
+    await Promise.all([
+      // Increment total conversions
+      kv.hincrby('stats:totals', 'conversions', 1),
+      kv.hincrby('stats:totals', success ? 'successful' : 'failed', 1),
+      kv.hincrby('stats:totals', 'total_size', fileSize),
+      
+      // Track format combinations
+      kv.hincrby(`stats:formats:${type}`, `${inputFormat}_to_${outputFormat}`, 1),
+      
+      // Store conversion event
+      kv.lpush('stats:recent', {
+        timestamp,
+        type,
+        inputFormat,
+        outputFormat,
+        fileSize,
+        duration,
+        success
+      }),
+      
+      // Update daily and hourly stats
+      kv.hincrby(`stats:daily:${date}`, type, 1),
+      kv.hincrby('stats:hourly', hour.toString(), 1),
+      
+      // Track size distribution
+      kv.hincrby('stats:sizes', getSizeBucket(fileSize), 1),
+      
+      // Track duration
+      kv.lpush('stats:durations', duration)
+    ]);
+  } catch (error) {
+    console.error('Failed to track conversion:', error);
+  }
 }
 
 export async function getGlobalStats(): Promise<ConversionStats> {
-  const [
-    totals,
-    formats,
-    sizes,
-    hourly,
-    durations
-  ] = await Promise.all([
-    kv.hgetall('stats:totals') as Promise<Record<string, number>>,
-    kv.hgetall('stats:formats') as Promise<Record<string, number>>,
-    kv.hgetall('stats:sizes') as Promise<Record<string, number>>,
-    kv.hgetall('stats:hourly') as Promise<Record<string, number>>,
-    kv.lrange('stats:durations', 0, 1000) as Promise<number[]>
-  ]);
+  try {
+    // Check if KV is available
+    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
+      console.warn('Vercel KV not configured, using default stats');
+      return getDefaultStats();
+    }
 
-  const today = new Date().toISOString().split('T')[0];
-  const todayStats = await kv.hget(`stats:daily:${today}`, 'total') as number || 0;
+    const [
+      totals,
+      formats,
+      sizes,
+      hourly,
+      durations
+    ] = await Promise.all([
+      kv.hgetall('stats:totals') as Promise<Record<string, number>>,
+      kv.hgetall('stats:formats') as Promise<Record<string, number>>,
+      kv.hgetall('stats:sizes') as Promise<Record<string, number>>,
+      kv.hgetall('stats:hourly') as Promise<Record<string, number>>,
+      kv.lrange('stats:durations', 0, 1000) as Promise<number[]>
+    ]);
 
-  return {
-    totalConversions: totals?.conversions || 0,
-    todayConversions: todayStats,
-    totalSize: totals?.total_size || 0,
-    successfulConversions: totals?.successful || 0,
-    failedConversions: (totals?.conversions || 0) - (totals?.successful || 0),
-    averageTime: durations?.length 
-      ? durations.reduce((a, b) => a + b, 0) / durations.length 
-      : 0,
-    conversionRate: totals?.conversions > 0 
-      ? (totals.successful / totals.conversions) * 100 
-      : 0,
-    conversionTimes: durations || [],
-    byFormat: formats || {},
-    bySize: sizes || {},
-    hourlyActivity: hourly || {},
-    successRate: totals?.conversions > 0 
-      ? (totals.successful / totals.conversions) * 100 
-      : 0,
-    lastUpdated: new Date().toISOString(),
-    popularConversions: formatConversionPairs(formats || {}),
-  };
+    const today = new Date().toISOString().split('T')[0];
+    const todayStats = await kv.hget(`stats:daily:${today}`, 'total') as number || 0;
+
+    return {
+      totalConversions: totals?.conversions || 0,
+      todayConversions: todayStats,
+      totalSize: totals?.total_size || 0,
+      successfulConversions: totals?.successful || 0,
+      failedConversions: (totals?.conversions || 0) - (totals?.successful || 0),
+      averageTime: durations?.length 
+        ? durations.reduce((a, b) => a + b, 0) / durations.length 
+        : 0,
+      conversionRate: totals?.conversions > 0 
+        ? (totals.successful / totals.conversions) * 100 
+        : 0,
+      conversionTimes: durations || [],
+      byFormat: formats || {},
+      bySize: sizes || {},
+      hourlyActivity: hourly || {},
+      successRate: totals?.conversions > 0 
+        ? (totals.successful / totals.conversions) * 100 
+        : 0,
+      lastUpdated: new Date().toISOString(),
+      popularConversions: formatConversionPairs(formats || {}),
+    };
+  } catch (error) {
+    console.error('Failed to fetch global stats:', error);
+    return getDefaultStats();
+  }
 }
 
 export async function updateGlobalStats(data: {
