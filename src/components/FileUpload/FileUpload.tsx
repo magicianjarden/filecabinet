@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { FileDropzone } from './FileDropzone';
 import { ConversionOptions } from './ConversionOptions';
 import { FileHistory } from '../FileHistory/FileHistory';
@@ -87,6 +87,17 @@ export function FileUpload() {
   const [isConverting, setIsConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { incrementConversions } = useStats();
+
+  // Add a ref to track URLs that need cleanup
+  const objectUrls = useRef<string[]>([]);
+
+  // Add cleanup function using useEffect
+  useEffect(() => {
+    // Cleanup function that runs when component unmounts
+    return () => {
+      objectUrls.current.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, []);
 
   // Fetch both stats and history on mount
   useEffect(() => {
@@ -198,6 +209,9 @@ export function FileUpload() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const downloadUrl = URL.createObjectURL(item.file);
+        objectUrls.current.push(downloadUrl); // Track the URL for cleanup
+
         // After successful conversion, add to history with completed status
         const conversionRecord: ConversionRecord = {
           fileName: item.file.name,
@@ -205,7 +219,7 @@ export function FileUpload() {
           targetFormat: item.targetFormat,
           status: 'completed',
           timestamp: new Date().toISOString(),
-          downloadUrl: URL.createObjectURL(item.file)
+          downloadUrl
         };
         
         setSessionHistory(prev => [conversionRecord, ...prev]);
@@ -260,6 +274,18 @@ export function FileUpload() {
       }
     }));
   }, []);
+
+  // Add clear history function
+  const clearHistory = useCallback(() => {
+    // Cleanup existing URLs
+    sessionHistory.forEach(record => {
+      if (record.downloadUrl) {
+        URL.revokeObjectURL(record.downloadUrl);
+      }
+    });
+    objectUrls.current = []; // Reset tracked URLs
+    setSessionHistory([]); // Clear history state
+  }, [sessionHistory]);
 
   return (
     <div className="container mx-auto p-4 space-y-6 max-w-7xl">

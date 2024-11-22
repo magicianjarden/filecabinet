@@ -69,43 +69,47 @@ export function FormatAnalytics({ popularConversions, isLoading }: FormatAnalyti
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>From</TableHead>
-              <TableHead>To</TableHead>
-              <TableHead>Usage</TableHead>
-              <TableHead className="text-right">Count</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedConversions.map((conversion, index) => {
-              const percentage = (conversion.count / total) * 100;
-              return (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">
-                    {conversion.from.toUpperCase()}
-                  </TableCell>
-                  <TableCell>{conversion.to.toUpperCase()}</TableCell>
-                  <TableCell className="w-[40%]">
-                    <div className="flex items-center gap-2">
-                      <Progress value={percentage} className="h-2" />
-                      <span className="text-sm text-muted-foreground w-12">
-                        {percentage.toFixed(1)}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {conversion.count.toLocaleString()}
-                  </TableCell>
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="min-w-[600px] sm:min-w-full p-4 sm:p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>From</TableHead>
+                  <TableHead>To</TableHead>
+                  <TableHead>Usage</TableHead>
+                  <TableHead className="text-right">Count</TableHead>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedConversions.map((conversion, index) => {
+                  const percentage = (conversion.count / total) * 100;
+                  return (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">
+                        {conversion.from.toUpperCase()}
+                      </TableCell>
+                      <TableCell>{conversion.to.toUpperCase()}</TableCell>
+                      <TableCell className="w-[40%]">
+                        <div className="flex items-center gap-2">
+                          <Progress value={percentage} className="h-2" />
+                          <span className="text-sm text-muted-foreground w-12">
+                            {percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {conversion.count.toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-end space-x-2 py-4">
+          <div className="flex items-center justify-end space-x-2 py-2 px-4 sm:px-0">
             <Button
               variant="outline"
               size="icon"

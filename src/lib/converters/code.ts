@@ -1,11 +1,13 @@
 import { Converter } from '@/types';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
+import YAML from 'yaml';
+import TOML from '@iarna/toml';
 
 export const codeConverter: Converter = {
   name: 'Code Converter',
   description: 'Convert between code formats',
-  inputFormats: ['json', 'xml'],
-  outputFormats: ['json', 'xml'],
+  inputFormats: ['json', 'xml', 'yaml', 'toml'],
+  outputFormats: ['json', 'xml', 'yaml'],
   
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {
@@ -24,6 +26,12 @@ export const codeConverter: Converter = {
           });
           data = parser.parse(text);
           break;
+        case 'yaml':
+          data = YAML.parse(text);
+          break;
+        case 'toml':
+          data = TOML.parse(text);
+          break;
         default:
           throw new Error(`Unsupported input format: ${inputFormat}`);
       }
@@ -40,6 +48,9 @@ export const codeConverter: Converter = {
             attributeNamePrefix: "@_"
           });
           result = builder.build(data);
+          break;
+        case 'yaml':
+          result = YAML.stringify(data);
           break;
         default:
           throw new Error(`Unsupported output format: ${outputFormat}`);

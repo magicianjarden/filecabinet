@@ -40,7 +40,7 @@ export function ConversionChart({ conversionTimes, isLoading }: ConversionChartP
   };
 
   return (
-    <div className="w-full h-[150px] sm:h-[200px] flex items-end gap-1 sm:gap-2 px-2">
+    <div className="w-full h-[120px] sm:h-[150px] md:h-[200px] flex items-end gap-1 sm:gap-2 px-2">
       {conversionTimes.map((time, index) => (
         <motion.div
           key={index}
@@ -52,7 +52,7 @@ export function ConversionChart({ conversionTimes, isLoading }: ConversionChartP
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="absolute -top-6 sm:-top-8 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/95 backdrop-blur-sm text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded pointer-events-none z-10 shadow-lg"
+            className="absolute -top-8 sm:-top-6 opacity-0 group-hover:opacity-100 touch-none sm:touch-auto transition-opacity bg-slate-900/95 backdrop-blur-sm text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded pointer-events-none z-10 shadow-lg"
           >
             {time.toFixed(1)}s
           </motion.div>

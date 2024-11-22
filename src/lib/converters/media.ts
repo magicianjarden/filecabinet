@@ -1,97 +1,90 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
+import '@ffmpeg/core-mt';
 import { Converter } from '@/types';
 
 let ffmpegInstance: FFmpeg | null = null;
 
 async function loadFFmpeg(): Promise<FFmpeg> {
   if (ffmpegInstance) {
-    console.log('Using existing FFmpeg instance');
     return ffmpegInstance;
   }
 
-  console.log('Creating new FFmpeg instance');
   const ffmpeg = new FFmpeg();
   
   try {
-    console.log('Loading FFmpeg...');
     await ffmpeg.load({
       coreURL: '/ffmpeg/ffmpeg-core.js',
       wasmURL: '/ffmpeg/ffmpeg-core.wasm'
     });
     
-    console.log('FFmpeg loaded successfully');
     ffmpegInstance = ffmpeg;
     return ffmpeg;
   } catch (error) {
     console.error('FFmpeg loading error:', error);
-    throw new Error(`Failed to load FFmpeg: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error('Failed to load FFmpeg');
   }
 }
+
+const getConversionCommand = (
+  inputFileName: string, 
+  outputFileName: string, 
+  inputFormat: string, 
+  outputFormat: string
+): string[] => {
+  const isAudio = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(inputFormat.toLowerCase());
+  
+  if (isAudio) {
+    switch (outputFormat) {
+      case 'mp3':
+        return ['-i', inputFileName, '-c:a', 'libmp3lame', '-b:a', '192k', outputFileName];
+      case 'wav':
+        return ['-i', inputFileName, '-c:a', 'pcm_s16le', outputFileName];
+      case 'ogg':
+        return ['-i', inputFileName, '-c:a', 'libvorbis', '-q:a', '4', outputFileName];
+      default:
+        throw new Error(`Unsupported audio output format: ${outputFormat}`);
+    }
+  }
+
+  // Video conversion
+  switch (outputFormat) {
+    case 'mp4':
+      return ['-i', inputFileName, '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', outputFileName];
+    case 'webm':
+      return ['-i', inputFileName, '-c:v', 'libvpx', '-c:a', 'libvorbis', outputFileName];
+    default:
+      throw new Error(`Unsupported video output format: ${outputFormat}`);
+  }
+};
 
 export const mediaConverter: Converter = {
   name: 'Media Converter',
   description: 'Convert between audio and video formats',
-  inputFormats: ['mp4', 'mov', 'avi', 'mp3', 'wav', 'ogg'],
-  outputFormats: ['mp4', 'mp3', 'wav'],
+  inputFormats: ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mp3', 'wav', 'ogg'],
+  outputFormats: ['mp4', 'webm', 'mp3', 'wav', 'ogg'],
   
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
-    console.log('Starting media conversion:', {
-      inputSize: input.length,
-      inputFormat,
-      outputFormat
-    });
-
     try {
       const ffmpeg = await loadFFmpeg();
-      console.log('FFmpeg instance ready');
-
       const inputFileName = `input.${inputFormat}`;
       const outputFileName = `output.${outputFormat}`;
 
-      // Write input file
-      console.log('Writing input file...');
-      const blob = new Blob([input]);
-      await ffmpeg.writeFile(inputFileName, await fetchFile(blob));
-      console.log('Input file written successfully');
+      await ffmpeg.writeFile(inputFileName, await fetchFile(new Blob([input])));
+      
+      const command = getConversionCommand(inputFileName, outputFileName, inputFormat, outputFormat);
+      await ffmpeg.exec(command);
 
-      // Determine if this is audio or video
-      const isAudio = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(inputFormat.toLowerCase());
-      console.log('File type:', isAudio ? 'audio' : 'video');
-
-      // Set conversion command
-      const conversionCommand = isAudio ? [
-        '-i', inputFileName,
-        '-c:a', 'aac',
-        '-b:a', '192k',
-        outputFileName
-      ] : [
-        '-i', inputFileName,
-        '-c:v', 'libx264',
-        '-c:a', 'aac',
-        '-preset', 'fast',
-        '-crf', '23',
-        outputFileName
-      ];
-
-      console.log('Running FFmpeg command:', conversionCommand.join(' '));
-      await ffmpeg.exec(conversionCommand);
-      console.log('FFmpeg command completed');
-
-      // Read the result
-      console.log('Reading output file...');
       const data = await ffmpeg.readFile(outputFileName);
-      console.log('Output file read successfully, size:', data.length);
-
-      // Clean up
+      
+      // Cleanup
       await ffmpeg.deleteFile(inputFileName);
       await ffmpeg.deleteFile(outputFileName);
-      console.log('Cleanup completed');
 
       return Buffer.from(data as Uint8Array);
     } catch (error) {
       console.error('Media conversion error:', error);
-      throw new Error(`Media conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error('Failed to convert media file');
     }
   }
 }; 

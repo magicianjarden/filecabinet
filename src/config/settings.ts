@@ -2,7 +2,7 @@ import type {
   SupportedFormats, 
   FileCategory,
   FormatConfig
-} from '@/types/formats';
+} from './types/formats';
 
 type SupportedFormatsType = {
   [K in FileCategory]: {
@@ -21,33 +21,33 @@ export const settings = {
     spreadsheets: 25 * 1024 * 1024,  // 25MB
     ebooks: 25 * 1024 * 1024,      // 25MB
     code: 5 * 1024 * 1024,      // 5MB for code files
-  },
+  } as const,
   supportedFormats: {
     documents: {
-      input: ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt', 'pages'],
-      output: ['pdf', 'doc', 'docx', 'txt', 'rtf', 'odt']
+      input: ['docx', 'txt', 'md'],
+      output: ['pdf', 'txt']
     },
     images: {
-      input: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'heic'],
-      output: ['jpg', 'png', 'webp', 'gif', 'bmp', 'tiff']
+      input: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'tiff'],
+      output: ['jpg', 'png', 'webp', 'avif']
     },
     media: {
       input: [
-        // Video
-        'mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v',
-        // Audio
-        'mp3', 'wav', 'aac', 'wma', 'ogg', 'm4a', 'flac'
+        // Video formats we can handle
+        'mp4', 'mov', 'avi', 'webm', 'mkv',
+        // Audio formats we can handle
+        'mp3', 'wav', 'ogg'
       ],
       output: [
-        // Video
-        'mp4', 'mov', 'avi', 'wmv', 'flv', 'webm', 'mkv', 'm4v',
-        // Audio
-        'mp3', 'wav', 'aac', 'wma', 'ogg', 'm4a', 'flac'
+        // Video formats we can convert to
+        'mp4', 'webm',
+        // Audio formats we can convert to
+        'mp3', 'wav', 'ogg'
       ]
     },
     archives: {
-      input: ['zip', 'rar', '7z', 'tar', 'gz'],
-      output: ['zip', 'rar', '7z', 'tar', 'gz']
+      input: ['zip', 'tar'],
+      output: ['zip', 'tar']
     },
     presentations: {
       input: ['ppt', 'pptx', 'key'],
@@ -62,14 +62,14 @@ export const settings = {
       output: ['epub']
     },
     code: {
-      input: ['json', 'xml'],
-      output: ['json', 'xml']
+      input: ['json', 'xml', 'yaml', 'toml'],
+      output: ['json', 'xml', 'yaml']
     }
   } satisfies SupportedFormatsType
 } as const;
 
 export function isValidFileCategory(category: string): category is FileCategory {
-  return Object.keys(settings.supportedFormats).includes(category);
+  return category in settings.supportedFormats;
 }
 
 export function getMaxFileSizeForCategory(category: FileCategory): number {

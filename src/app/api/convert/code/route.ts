@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { codeConverter } from '@/lib/converters/code';
+import { getMimeType } from '@/config/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,12 +19,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const result = await codeConverter.convert(buffer, inputFormat, outputFormat);
 
     return new NextResponse(result, {
       headers: {
-        'Content-Type': 'text/plain',
+        'Content-Type': getMimeType(outputFormat),
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
       },
     });

@@ -1,12 +1,11 @@
 import sharp from 'sharp';
 import { Converter } from '@/types';
-import { settings } from '@/config/settings';
 
 export const imageConverter: Converter = {
   name: 'Image Converter',
   description: 'Convert between image formats',
-  inputFormats: settings.supportedFormats.images.input,
-  outputFormats: settings.supportedFormats.images.output,
+  inputFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'tiff'],
+  outputFormats: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
   
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {
@@ -15,11 +14,13 @@ export const imageConverter: Converter = {
       switch (outputFormat) {
         case 'jpg':
         case 'jpeg':
-          return await image.jpeg().toBuffer();
+          return await image.jpeg({ quality: 85 }).toBuffer();
         case 'png':
-          return await image.png().toBuffer();
+          return await image.png({ compressionLevel: 9 }).toBuffer();
         case 'webp':
-          return await image.webp().toBuffer();
+          return await image.webp({ quality: 85 }).toBuffer();
+        case 'avif':
+          return await image.avif({ quality: 85 }).toBuffer();
         default:
           throw new Error(`Unsupported output format: ${outputFormat}`);
       }
