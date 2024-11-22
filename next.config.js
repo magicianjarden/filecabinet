@@ -1,52 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    ignoreBuildErrors: true,
-  },
-  env: {
-    KV_URL: process.env.KV_URL,
-    KV_REST_API_URL: process.env.KV_REST_API_URL,
-    KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN,
-    KV_REST_API_READ_ONLY_TOKEN: process.env.KV_REST_API_READ_ONLY_TOKEN,
-  },
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'require-corp',
-          },
-          {
-            key: 'Cross-Origin-Opener-Policy',
-            value: 'same-origin',
-          },
-        ],
-      },
-    ];
-  },
   output: 'standalone',
-  images: {
-    unoptimized: true
-  },
   experimental: {
-    serverComponentsExternalPackages: ['cross-spawn', 'spawn-sync', 'gm', 'less', 'swagger-jsdoc'],
+    serverComponentsExternalPackages: ['adm-zip', 'tar'],
   },
   webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push('cross-spawn', 'spawn-sync', 'gm', 'less', 'swagger-jsdoc');
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+        zlib: false,
+      };
     }
     return config;
-  }
-};
+  },
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig
