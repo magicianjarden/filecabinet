@@ -11,9 +11,6 @@ const nextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
-  experimental: {
-    serverActions: true,
-  },
   env: {
     KV_URL: process.env.KV_URL,
     KV_REST_API_URL: process.env.KV_REST_API_URL,

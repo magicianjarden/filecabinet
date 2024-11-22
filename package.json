@@ -47,7 +47,6 @@
     "marked": "^11.0.0",
     "next": "14.2.18",
     "next-swagger-doc": "0.4.0",
-    "node-tar": "^1.0.0",
     "papaparse": "^5.4.1",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.1",

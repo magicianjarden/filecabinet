@@ -1,5 +1,5 @@
 import AdmZip from 'adm-zip';
-import tar from 'tar';
+import { create, extract } from 'tar';
 import { Converter } from '@/types';
 import { join } from 'path';
 import { writeFile, mkdir, rm, readFile } from 'fs/promises';
@@ -36,7 +36,7 @@ export const archiveConverter: Converter = {
           const tarOutputPath = join(tempDir, 'output.tar');
           
           zipToTar.extractAllTo(zipExtractPath);
-          await tar.create({ file: tarOutputPath, cwd: zipExtractPath }, ['./']);
+          await create({ file: tarOutputPath, cwd: zipExtractPath }, ['./']);
           
           return await readFile(tarOutputPath);
           
@@ -45,7 +45,7 @@ export const archiveConverter: Converter = {
           const tarExtractPath = join(tempDir, 'extracted');
           
           await writeFile(tarInputPath, input);
-          await tar.extract({ file: tarInputPath, cwd: tarExtractPath });
+          await extract({ file: tarInputPath, cwd: tarExtractPath });
           
           const newZip = new AdmZip();
           newZip.addLocalFolder(tarExtractPath);
