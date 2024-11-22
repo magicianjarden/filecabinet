@@ -13,8 +13,9 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function StatsPage() {
-  const [stats, setStats] = useState<ConversionStats>({
+  const defaultStats: ConversionStats = {
     totalConversions: 0,
+    todayConversions: 0,
     successfulConversions: 0,
     failedConversions: 0,
     totalSize: 0,
@@ -27,7 +28,9 @@ export default function StatsPage() {
     successRate: 0,
     lastUpdated: new Date().toISOString(),
     popularConversions: []
-  });
+  };
+
+  const [stats, setStats] = useState<ConversionStats>(defaultStats);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 

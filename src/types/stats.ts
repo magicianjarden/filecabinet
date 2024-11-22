@@ -1,8 +1,9 @@
 export interface ConversionStats {
   totalConversions: number;
+  todayConversions: number;
+  totalSize: number;
   successfulConversions: number;
   failedConversions: number;
-  totalSize: number;
   averageTime: number;
   conversionRate: number;
   conversionTimes: number[];

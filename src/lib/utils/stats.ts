@@ -8,9 +8,10 @@ export const getInitialStats = async (): Promise<ConversionStats> => {
     console.error('Failed to get initial stats:', error);
     return {
       totalConversions: 0,
+      todayConversions: 0,
+      totalSize: 0,
       successfulConversions: 0,
       failedConversions: 0,
-      totalSize: 0,
       averageTime: 0,
       conversionRate: 0,
       conversionTimes: [],

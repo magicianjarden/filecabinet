@@ -78,31 +78,30 @@ export async function getGlobalStats(): Promise<ConversionStats> {
     kv.lrange('stats:durations', 0, 1000) as Promise<number[]>
   ]);
 
-  const totalConversions = totals?.conversions || 0;
-  const successfulConversions = totals?.successful || 0;
-  const totalSize = totals?.total_size || 0;
-  const popularConversions = formatConversionPairs(formats || {});
+  const today = new Date().toISOString().split('T')[0];
+  const todayStats = await kv.hget(`stats:daily:${today}`, 'total') as number || 0;
 
   return {
-    totalConversions,
-    successfulConversions,
-    failedConversions: totalConversions - successfulConversions,
-    totalSize,
+    totalConversions: totals?.conversions || 0,
+    todayConversions: todayStats,
+    totalSize: totals?.total_size || 0,
+    successfulConversions: totals?.successful || 0,
+    failedConversions: (totals?.conversions || 0) - (totals?.successful || 0),
     averageTime: durations?.length 
       ? durations.reduce((a, b) => a + b, 0) / durations.length 
       : 0,
-    conversionRate: totalConversions > 0 
-      ? (successfulConversions / totalConversions) * 100 
+    conversionRate: totals?.conversions > 0 
+      ? (totals.successful / totals.conversions) * 100 
       : 0,
     conversionTimes: durations || [],
     byFormat: formats || {},
     bySize: sizes || {},
     hourlyActivity: hourly || {},
-    successRate: totalConversions > 0 
-      ? (successfulConversions / totalConversions) * 100 
+    successRate: totals?.conversions > 0 
+      ? (totals.successful / totals.conversions) * 100 
       : 0,
     lastUpdated: new Date().toISOString(),
-    popularConversions,
+    popularConversions: formatConversionPairs(formats || {}),
   };
 }
 

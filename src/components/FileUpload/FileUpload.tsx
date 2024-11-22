@@ -227,6 +227,16 @@ export function FileUpload() {
         // Update progress to completed
         updateProgress(item.file.name, { progress: 100, status: 'completed' });
 
+        // Update stats after successful conversion
+        const statsResponse = await fetch('/api/stats');
+        if (statsResponse.ok) {
+          const newStats = await statsResponse.json();
+          setStats(newStats);
+        }
+
+        // Increment conversion count
+        await incrementConversions();
+
         // Rest of your success handling...
 
       } catch (err: any) {
