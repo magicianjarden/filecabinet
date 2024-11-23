@@ -180,21 +180,34 @@ export async function updateStats(data: {
   success: boolean;
 }) {
   try {
-    console.log('Updating stats with data:', data);
+    console.log('Attempting to update stats with data:', data);
 
     const hour = new Date().getHours();
     const formatKey = `${data.fromFormat}-to-${data.toFormat}`;
     const sizeCategory = getSizeCategory(data.fileSize);
 
-    await Promise.all([
+    // Test KV connection
+    const testResult = await kv.set('test-connection', 'ok');
+    console.log('KV connection test:', testResult);
+
+    const updates = await Promise.all([
       // Increment total conversions
-      kv.incr('stats:total_conversions'),
+      kv.incr('stats:total_conversions').then(result => {
+        console.log('Updated total_conversions:', result);
+        return result;
+      }),
       
       // Update success/failure counts
-      kv.incr(`stats:${data.success ? 'successful' : 'failed'}_conversions`),
+      kv.incr(`stats:${data.success ? 'successful' : 'failed'}_conversions`).then(result => {
+        console.log('Updated success/failure count:', result);
+        return result;
+      }),
       
-      // Add conversion time if available
-      data.conversionTime && kv.lpush('stats:conversion_times', data.conversionTime.toString()),
+      // Add conversion time to list (keep last 100)
+      data.conversionTime && kv.lpush('stats:conversion_times', data.conversionTime.toString()).then(result => {
+        console.log('Updated conversion_times:', result);
+        return result;
+      }),
       
       // Update format stats
       kv.hincrby('stats:formats', formatKey, 1),

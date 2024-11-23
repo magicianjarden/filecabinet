@@ -7,7 +7,13 @@ export async function handleConversionWithStats(
 ) {
   const startTime = Date.now();
   const fileSize = file.size;
-  const fromFormat = file.name.split('.').pop() || '';
+  const fromFormat = file.name.split('.').pop()?.toLowerCase() || '';
+
+  console.log('Starting conversion with stats tracking:', {
+    fileSize,
+    fromFormat,
+    targetFormat
+  });
 
   try {
     // Run the actual conversion
@@ -15,16 +21,26 @@ export async function handleConversionWithStats(
     
     // Record successful conversion
     const endTime = Date.now();
+    const conversionTime = (endTime - startTime) / 1000;
+
+    console.log('Conversion successful, updating stats...', {
+      conversionTime,
+      success: true
+    });
+
     await updateStats({
       fileSize,
       fromFormat,
       toFormat: targetFormat,
-      conversionTime: (endTime - startTime) / 1000,
+      conversionTime,
       success: true
     });
 
+    console.log('Stats updated successfully');
     return result;
   } catch (error) {
+    console.error('Conversion failed, recording failure...', error);
+
     // Record failed conversion
     await updateStats({
       fileSize,
@@ -32,6 +48,7 @@ export async function handleConversionWithStats(
       toFormat: targetFormat,
       success: false
     });
+
     throw error;
   }
 } 
