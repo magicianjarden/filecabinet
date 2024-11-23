@@ -9,6 +9,7 @@ import {
   CheckCircle
 } from "lucide-react";
 import { formatFileSize } from '@/lib/utils/format';
+import { useState } from 'react';
 
 interface StatsProps {
   totalConversions: number;
@@ -23,6 +24,16 @@ export function Stats({
   averageTime, 
   conversionRate,
 }: StatsProps) {
+  const [error, setError] = useState<string | null>(null);
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-md">
+        <p>Failed to load stats: {error}</p>
+      </div>
+    );
+  }
+
   const container = {
     hidden: { opacity: 0 },
     show: {

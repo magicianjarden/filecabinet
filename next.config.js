@@ -8,6 +8,7 @@ const nextConfig = {
       'adm-zip',
       'tar'
     ],
+    serverActions: true,
   },
   eslint: {
     ignoreDuringBuilds: true  // Temporarily ignore ESLint during builds
@@ -22,6 +23,10 @@ const nextConfig = {
       );
     }
     return config;
+  },
+  kv: {
+    database: process.env.KV_REST_API_URL,
+    token: process.env.KV_REST_API_TOKEN,
   }
 }
 

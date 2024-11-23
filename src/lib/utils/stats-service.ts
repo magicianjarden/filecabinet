@@ -90,11 +90,24 @@ export async function trackConversion(
   }
 }
 
+// Add a connection check utility
+async function checkKvConnection() {
+  try {
+    await kv.set('connection-test', 'ok');
+    const test = await kv.get('connection-test');
+    return test === 'ok';
+  } catch (error) {
+    console.error('KV Connection Error:', error);
+    return false;
+  }
+}
+
 export async function getGlobalStats(): Promise<ConversionStats> {
   try {
-    // Check if KV is available
-    if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
-      console.warn('Vercel KV not configured, using default stats');
+    // Check connection first
+    const isConnected = await checkKvConnection();
+    if (!isConnected) {
+      console.warn('KV connection failed, using default stats');
       return getDefaultStats();
     }
 
@@ -138,7 +151,7 @@ export async function getGlobalStats(): Promise<ConversionStats> {
       popularConversions: formatConversionPairs(formats || {}),
     };
   } catch (error) {
-    console.error('Failed to fetch global stats:', error);
+    console.error('Stats Error:', error);
     return getDefaultStats();
   }
 }
