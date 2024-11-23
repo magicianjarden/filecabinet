@@ -1,63 +1,46 @@
 'use client';
 
-import Link from 'next/link';
-import { ChevronRight, Home } from "lucide-react";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { ChevronRight, LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface BreadcrumbItem {
+  title: string;
+  href?: string;
+  icon?: React.ReactNode;
+}
 
 interface BreadcrumbNavProps {
-  items: {
-    title: string;
-    href?: string;
-    icon?: React.ReactNode;
-  }[];
+  items: BreadcrumbItem[];
 }
 
 export function BreadcrumbNav({ items }: BreadcrumbNavProps) {
-  const pathname = usePathname();
-  const isHome = pathname === '/';
-
   return (
-    <Breadcrumb className="mb-6">
-      <BreadcrumbList>
-        <BreadcrumbItem>
-          {isHome ? (
-            <BreadcrumbPage className="flex items-center gap-2">
-              <Home className="h-4 w-4" />
-              Home
-            </BreadcrumbPage>
-          ) : (
-            <BreadcrumbLink 
-              href="/" 
-              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
-            >
-              <Home className="h-4 w-4" />
-              Home
-            </BreadcrumbLink>
-          )}
-        </BreadcrumbItem>
+    <nav aria-label="Breadcrumb">
+      <ol className="flex items-center space-x-2 text-sm text-muted-foreground">
         {items.map((item, index) => (
-          <BreadcrumbItem key={index}>
-            <BreadcrumbSeparator>
-              <ChevronRight className="h-4 w-4" />
-            </BreadcrumbSeparator>
-            {item.href ? (
-              <BreadcrumbLink 
-                href={item.href}
-                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
-              >
-                {item.icon}
-                {item.title}
-              </BreadcrumbLink>
-            ) : (
-              <BreadcrumbPage className="flex items-center gap-2">
-                {item.icon}
-                {item.title}
-              </BreadcrumbPage>
+          <div key={item.title} className="flex items-center">
+            {index > 0 && (
+              <ChevronRight className="h-4 w-4 mx-2 text-muted-foreground/50" />
             )}
-          </BreadcrumbItem>
+            <div className="flex items-center">
+              {item.icon && (
+                <span className="mr-2">{item.icon}</span>
+              )}
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="hover:text-foreground transition-colors"
+                >
+                  {item.title}
+                </Link>
+              ) : (
+                <span>{item.title}</span>
+              )}
+            </div>
+          </div>
         ))}
-      </BreadcrumbList>
-    </Breadcrumb>
+      </ol>
+    </nav>
   );
 } 

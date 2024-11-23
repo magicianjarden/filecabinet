@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 interface ConversionChartProps {
   conversionTimes: number[];
@@ -12,58 +13,84 @@ interface ConversionChartProps {
 
 export function ConversionChart({ conversionTimes, isLoading }: ConversionChartProps) {
   if (isLoading) {
-    return <Skeleton className="h-[200px] w-full" />;
+    return <Skeleton className="h-[300px] w-full" />;
   }
 
-  const max = Math.max(...conversionTimes, 1);
-  const min = Math.min(...conversionTimes, 0);
-  const range = max - min;
-
-  const getHeight = (value: number) => {
-    return ((value - min) / range) * 100;
-  };
+  const data = conversionTimes.map((time, index) => ({
+    id: index + 1,
+    time: time
+  }));
 
   return (
-    <div className="w-full h-[200px] flex items-end gap-2">
-      {conversionTimes.map((time, index) => (
-        <motion.div
-          key={index}
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.4, delay: index * 0.05 }}
-          className="group flex-1 flex flex-col items-center gap-2 relative"
-        >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute -top-6 opacity-0 group-hover:opacity-100 transition-opacity bg-card text-card-foreground text-xs px-2 py-1 rounded pointer-events-none z-10 shadow-lg"
-          >
-            {time.toFixed(1)}s
-          </motion.div>
-          <motion.div 
-            className="w-full bg-primary/20 hover:bg-primary/30 transition-colors rounded-t cursor-pointer"
-            style={{ height: `${getHeight(time)}%` }}
-            whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <motion.div 
-              className="w-full bg-primary h-1 rounded-full transform -translate-y-1/2"
-              style={{ opacity: getHeight(time) / 100 }}
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            />
-          </motion.div>
-          <motion.span 
-            className="text-xs text-muted-foreground absolute -bottom-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: index * 0.05 + 0.2 }}
-          >
-            {index + 1}
-          </motion.span>
-        </motion.div>
-      ))}
+    <div className="w-full">
+      <div className="mb-6 flex justify-between text-sm text-muted-foreground">
+        <div>Conversion Time (seconds)</div>
+        <div>Last {conversionTimes.length} conversions</div>
+      </div>
+      <ResponsiveContainer width="100%" height={300}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorTime" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            vertical={false} 
+            stroke="#e2e8f0" 
+          />
+          <XAxis 
+            dataKey="id" 
+            stroke="#94a3b8"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            label={{ 
+              value: 'Conversion Number', 
+              position: 'insideBottom', 
+              offset: -5,
+              fontSize: 12,
+              fill: '#64748b'
+            }}
+          />
+          <YAxis 
+            stroke="#94a3b8"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            label={{ 
+              value: 'Time (seconds)', 
+              angle: -90, 
+              position: 'insideLeft',
+              offset: 10,
+              fontSize: 12,
+              fill: '#64748b'
+            }}
+          />
+          <Tooltip 
+            content={({ active, payload }) => {
+              if (active && payload && payload.length) {
+                return (
+                  <div className="bg-white p-2 border rounded-lg shadow-lg">
+                    <p className="text-sm font-medium">Conversion #{payload[0]?.payload?.id}</p>
+                    <p className="text-sm text-muted-foreground">{`${typeof payload[0]?.value === 'number' ? payload[0].value.toFixed(2) : payload[0]?.value}s`}</p>
+                  </div>
+                );
+              }
+              return null;
+            }}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="time" 
+            stroke="#22c55e" 
+            strokeWidth={2}
+            fillOpacity={1} 
+            fill="url(#colorTime)" 
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 } 
