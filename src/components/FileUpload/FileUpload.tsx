@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { FileDropzone } from './FileDropzone';
 import { ConversionOptions } from './ConversionOptions';
 import { FileHistory } from '../FileHistory/FileHistory';
@@ -23,6 +23,7 @@ import { ConversionStatus } from "@/types";
 import { useStats } from '@/hooks/useStats';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
+import { formatFileSize, getFileExtension } from '@/lib/utils/conversion';
 
 interface FileWithStatus {
   file: File;
@@ -154,13 +155,11 @@ export function FileUpload() {
     setFileQueue(prev => [...prev, ...newFileQueue]);
   };
 
-  const handleFormatChange = (fileName: string, format: string) => {
-    setFileQueue(prev => prev.map(item => 
-      item.file.name === fileName 
-        ? { ...item, targetFormat: format, status: 'ready' }
-        : item
+  const handleFormatChange = useCallback((format: string, index: number) => {
+    setFileQueue(prev => prev.map((item, i) => 
+      i === index ? { ...item, targetFormat: format } : item
     ));
-  };
+  }, []);
 
   const getFileCategory = (fileName: string): string => {
     const ext = fileName.split('.').pop()?.toLowerCase() || '';
@@ -174,15 +173,14 @@ export function FileUpload() {
   };
 
   const handleConvert = async () => {
-    const readyFiles = fileQueue.filter(item => item.status === 'ready');
-    const pendingFiles = fileQueue.filter(item => item.status === 'pending');
-    setFileQueue(pendingFiles);
+    const filesToConvert = fileQueue.filter(item => 
+      item.targetFormat && 
+      item.targetFormat !== item.file.name.split('.').pop()
+    );
 
-    for (const item of readyFiles) {
+    for (const item of filesToConvert) {
       try {
         // Update status to processing
-        setFileQueue(prev => [...prev, { ...item, status: 'processing' }]);
-        
         setConversionProgress(prev => ({
           ...prev,
           [item.file.name]: {
@@ -197,21 +195,31 @@ export function FileUpload() {
         formData.append('inputFormat', item.file.name.split('.').pop() || '');
         formData.append('outputFormat', item.targetFormat);
 
-        console.log('Starting conversion for:', item.file.name);
-        
-        const response = await fetch(`/api/convert/${getFileCategory(item.file.name)}`, {
+        const category = getFileCategory(item.file.name);
+        const response = await fetch(`/api/convert/${category}`, {
           method: 'POST',
           body: formData
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Conversion failed');
+          throw new Error('Conversion failed');
         }
 
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
-        objectUrls.current.push(url);
+
+        // Create conversion record
+        const conversionRecord: ConversionRecord = {
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          timestamp: new Date().toISOString(),
+          status: 'completed',
+          targetFormat: item.targetFormat,
+          downloadUrl: url
+        };
+
+        // Update session history
+        setSessionHistory(prev => [conversionRecord, ...prev]);
 
         // Update conversion progress
         setConversionProgress(prev => ({
@@ -223,45 +231,34 @@ export function FileUpload() {
           }
         }));
 
-        // Add to session history
-        const record: ConversionRecord = {
-          fileName: item.file.name,
-          fileSize: item.file.size,
-          targetFormat: item.targetFormat,
-          status: 'completed',
-          timestamp: new Date().toISOString(),
-          downloadUrl: url
-        };
-        
-        setSessionHistory(prev => [record, ...prev]);
-        
+        // Trigger download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${item.file.name.split('.')[0]}.${item.targetFormat}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
         // Update stats
-        incrementConversions();
+        await incrementConversions();
 
       } catch (error) {
         console.error('Conversion error:', error);
-        
         setConversionProgress(prev => ({
           ...prev,
           [item.file.name]: {
             progress: 0,
             status: 'failed',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Conversion failed'
           }
         }));
-
-        const failedRecord: ConversionRecord = {
-          fileName: item.file.name,
-          fileSize: item.file.size,
-          targetFormat: item.targetFormat,
-          status: 'failed',
-          timestamp: new Date().toISOString(),
-          error: error instanceof Error ? error.message : 'Unknown error'
-        };
-        
-        setSessionHistory(prev => [failedRecord, ...prev]);
       }
     }
+
+    // Remove converted files from queue
+    setFileQueue(prev => prev.filter(item => 
+      !filesToConvert.some(f => f.file.name === item.file.name)
+    ));
   };
 
   const updateStats = async (fileSize: number) => {
@@ -312,6 +309,93 @@ export function FileUpload() {
     objectUrls.current = []; // Reset tracked URLs
     setSessionHistory([]); // Clear history state
   }, [sessionHistory]);
+
+  // Add the removeFile function
+  const removeFile = useCallback((index: number) => {
+    setFileQueue(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // Clear queue function
+  const clearQueue = useCallback(() => {
+    setFileQueue([]);
+    setConversionProgress({});
+  }, []);
+
+  // Check if files can be converted
+  const canConvert = useMemo(() => {
+    return fileQueue.some(item => 
+      item.status === 'ready' && 
+      item.targetFormat !== '' && 
+      item.targetFormat !== item.file.name.split('.').pop()?.toLowerCase()
+    );
+  }, [fileQueue]);
+
+  // Convert all files function
+  const convertAll = useCallback(async () => {
+    const filesToConvert = fileQueue.filter(item => 
+      item.status === 'ready' && 
+      item.targetFormat !== '' && 
+      item.targetFormat !== item.file.name.split('.').pop()?.toLowerCase()
+    );
+
+    for (const item of filesToConvert) {
+      try {
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            progress: 0,
+            status: 'processing',
+            error: null
+          }
+        }));
+
+        const formData = new FormData();
+        formData.append('file', item.file);
+        formData.append('inputFormat', item.file.name.split('.').pop() || '');
+        formData.append('outputFormat', item.targetFormat);
+
+        const response = await fetch('/api/convert/media', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Conversion failed');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            progress: 100,
+            status: 'completed',
+            error: null
+          }
+        }));
+
+        // Trigger download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${item.file.name.split('.')[0]}.${item.targetFormat}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+      } catch (error) {
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            progress: 0,
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Conversion failed'
+          }
+        }));
+      }
+    }
+  }, [fileQueue]);
 
   return (
     <div className="container mx-auto p-4 space-y-6 max-w-7xl">
@@ -389,91 +473,85 @@ export function FileUpload() {
                     </div>
 
                     <div className="space-y-2">
-                      {files.map(({ file, targetFormat, status, error }) => (
-                        <div 
-                          key={file.name} 
-                          className={cn(
-                            "flex flex-col gap-4 p-3 rounded-lg border transition-colors group",
-                            status === 'pending' && "bg-white/50 border-slate-200",
-                            status === 'ready' && "bg-green-50/50 border-green-200",
-                            status === 'processing' && "bg-blue-50/50 border-blue-200",
-                            status === 'failed' && "bg-red-50/50 border-red-200"
-                          )}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <p className="font-medium text-sm truncate">{file.name}</p>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setFileQueue(prev => prev.filter(item => item.file.name !== file.name));
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity -my-2 h-8 w-8 p-0 text-slate-500 hover:text-red-600"
-                                >
-                                  <X className="h-4 w-4" />
-                                  <span className="sr-only">Remove file</span>
-                                </Button>
+                      {files.map((item, index) => (
+                        <div key={index} className="space-y-2">
+                          <div className="flex flex-col bg-slate-50 p-4 rounded-lg">
+                            {/* File Info Section */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-slate-600 shrink-0" />
+                                  <span className="text-sm font-medium truncate">
+                                    {item.file.name}
+                                  </span>
+                                  <Badge variant="secondary" className="text-xs shrink-0">
+                                    {(item.file.size / (1024 * 1024)).toFixed(2)} MB
+                                  </Badge>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <p className="text-xs text-slate-500">
-                                  {(file.size / 1024 / 1024).toFixed(1)} MB
-                                </p>
-                                {error && (
-                                  <p className="text-xs text-red-500">{error}</p>
-                                )}
-                              </div>
+                              
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setFileQueue(prev => prev.filter((_, i) => i !== index));
+                                }}
+                                className="shrink-0 h-8 w-8 p-0 self-end sm:self-center"
+                              >
+                                <X className="h-4 w-4" />
+                                <span className="sr-only">Remove file</span>
+                              </Button>
                             </div>
-                            <ConversionOptions
-                              currentFormat={file.name.split('.').pop()?.toLowerCase() || ''}
-                              targetFormat={targetFormat}
-                              onFormatChange={(format) => handleFormatChange(file.name, format)}
-                              file={file}
-                            />
-                          </div>
 
-                          {(status === 'processing' || status === 'completed' || status === 'failed') && (
-                            <ProgressBar
-                              progress={getFileProgress(file.name, conversionProgress)}
-                              status={getFileStatus(file.name, conversionProgress)}
-                              error={getFileError(file.name, conversionProgress)}
-                            />
-                          )}
+                            {/* Conversion Options Section - Back to being below */}
+                            <div className="mt-3 overflow-x-auto">
+                              <ConversionOptions
+                                currentFormat={item.file.name.split('.').pop() || ''}
+                                targetFormat={item.targetFormat}
+                                onFormatChange={(format) => handleFormatChange(format, index)}
+                                file={item.file}
+                              />
+                            </div>
+
+                            {/* Progress Section */}
+                            {(item.status === 'processing' || item.status === 'completed' || item.status === 'failed') && (
+                              <div className="mt-3">
+                                <ProgressBar
+                                  progress={getFileProgress(item.file.name, conversionProgress)}
+                                  status={getFileStatus(item.file.name, conversionProgress)}
+                                  error={getFileError(item.file.name, conversionProgress)}
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 ))}
 
-                <div className="flex justify-between items-center mt-6 pt-6 border-t border-slate-200">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="text-xs">
-                      {fileQueue.filter(f => f.status === 'ready').length} ready
-                    </Badge>
-                    {fileQueue.filter(f => f.status === 'pending').length > 0 && (
-                      <Badge variant="outline" className="text-xs text-orange-500 border-orange-200 bg-orange-50">
-                        {fileQueue.filter(f => f.status === 'pending').length} pending
-                      </Badge>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFileQueue([])}
-                      className="text-xs text-slate-500 hover:text-red-600"
-                    >
-                      Clear Queue
-                    </Button>
-                  </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-end mt-4">
                   <Button
-                    onClick={handleConvert}
-                    disabled={!fileQueue.some(f => f.status === 'ready')}
-                    className={cn(
-                      "bg-green-600 hover:bg-green-700 text-white",
-                      "disabled:bg-slate-200 disabled:text-slate-500"
-                    )}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setFileQueue([]);
+                      setConversionProgress({});
+                    }}
+                    className="w-full sm:w-auto order-2 sm:order-1"
                   >
-                    Convert {fileQueue.filter(f => f.status === 'ready').length} Files
+                    Clear Queue
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleConvert}
+                    disabled={!fileQueue.some(item => 
+                      item.targetFormat && 
+                      item.targetFormat !== item.file.name.split('.').pop()
+                    )}
+                    className="w-full sm:w-auto order-1 sm:order-2 bg-green-600 hover:bg-green-700"
+                  >
+                    Convert {fileQueue.length} {fileQueue.length === 1 ? 'File' : 'Files'}
                   </Button>
                 </div>
               </>

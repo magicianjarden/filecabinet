@@ -58,7 +58,8 @@ export function FileHistory({ records, onDownload }: FileHistoryProps) {
               <TableCell className="text-muted-foreground text-sm">
                 {new Date(record.timestamp).toLocaleTimeString([], {
                   hour: '2-digit',
-                  minute: '2-digit'
+                  minute: '2-digit',
+                  hour12: true
                 })}
               </TableCell>
               <TableCell className="text-right">

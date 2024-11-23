@@ -19,7 +19,7 @@ export function ConversionOptions({
   const options = FORMAT_MAPPING[currentFormat.toLowerCase()] || [];
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2 max-w-full overflow-x-auto pb-2">
       {options.length > 0 ? (
         options.map((format) => (
           <Button
@@ -28,7 +28,7 @@ export function ConversionOptions({
             size="sm"
             onClick={() => onFormatChange(format)}
             className={cn(
-              "text-xs font-medium",
+              "text-xs font-medium shrink-0",
               targetFormat === format && "bg-green-600 hover:bg-green-700",
             )}
           >
