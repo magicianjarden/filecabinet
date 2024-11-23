@@ -15,7 +15,13 @@ export async function POST(request: NextRequest) {
     const inputFormat = formData.get('inputFormat') as string;
     const outputFormat = formData.get('outputFormat') as string;
 
-    // Validation
+    console.log('Media conversion request:', {
+      fileName: file.name,
+      fileSize: file.size,
+      inputFormat,
+      outputFormat
+    });
+
     if (!file || !inputFormat || !outputFormat) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -23,51 +29,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({
-        error: `File size exceeds limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
-        code: 'FILE_TOO_LARGE'
-      }, { status: 400 });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    console.log('Converting media file...');
+    
+    try {
+      const result = await handleConversionWithStats(
+        file,
+        outputFormat,
+        async () => {
+          const convertedBuffer = await mediaConverter.convert(
+            buffer,
+            inputFormat,
+            outputFormat
+          );
+          console.log('Media conversion completed');
+          return convertedBuffer;
+        }
+      );
+
+      const mimeType = outputFormat.startsWith('audio/') ? `audio/${outputFormat}` : `video/${outputFormat}`;
+      console.log('Sending response with mime type:', mimeType);
+
+      return new NextResponse(result, {
+        headers: {
+          'Content-Type': mimeType,
+          'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
+          'Content-Length': result.length.toString(),
+        },
+      });
+    } catch (conversionError: unknown) {
+      console.error('Conversion process error:', conversionError);
+      throw new Error(`Conversion failed: ${conversionError instanceof Error ? conversionError.message : String(conversionError)}`);
     }
-
-    if (!mediaConverter.inputFormats.includes(inputFormat)) {
-      return NextResponse.json({
-        error: `Unsupported input format: ${inputFormat}`,
-        code: 'INVALID_INPUT_FORMAT'
-      }, { status: 400 });
-    }
-
-    if (!mediaConverter.outputFormats.includes(outputFormat)) {
-      return NextResponse.json({
-        error: `Unsupported output format: ${outputFormat}`,
-        code: 'INVALID_OUTPUT_FORMAT'
-      }, { status: 400 });
-    }
-
-    const result = await handleConversionWithStats(
-      file,
-      outputFormat,
-      async () => {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const convertedBuffer = await mediaConverter.convert(
-          buffer,
-          inputFormat,
-          outputFormat
-        );
-
-        return convertedBuffer;
-      }
-    );
-
-    return new NextResponse(result, {
-      headers: {
-        'Content-Type': outputFormat.startsWith('audio/') ? `audio/${outputFormat}` : `video/${outputFormat}`,
-        'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
-        'Content-Length': result.length.toString(),
-      },
+  } catch (error: unknown) {
+    console.error('Media conversion error:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     });
-  } catch (error) {
-    console.error('Media conversion error:', error);
+    
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Failed to convert media',
       code: 'CONVERSION_FAILED',

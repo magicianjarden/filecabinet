@@ -194,24 +194,12 @@ export function FileUpload() {
 
         const formData = new FormData();
         formData.append('file', item.file);
-        
-        // Get input format from file extension
-        const inputFormat = item.file.name.split('.').pop()?.toLowerCase() || '';
-        formData.append('inputFormat', inputFormat);
+        formData.append('inputFormat', item.file.name.split('.').pop() || '');
         formData.append('outputFormat', item.targetFormat);
 
-        // Get the correct endpoint based on file category
-        const category = getFileCategory(item.file.name);
-        const endpoint = `/api/convert/${category}`;
+        console.log('Starting conversion for:', item.file.name);
         
-        console.log(`Converting file using endpoint: ${endpoint}`, {
-          fileName: item.file.name,
-          inputFormat,
-          outputFormat: item.targetFormat,
-          category
-        });
-
-        const response = await fetch(endpoint, {
+        const response = await fetch(`/api/convert/${getFileCategory(item.file.name)}`, {
           method: 'POST',
           body: formData
         });
@@ -221,66 +209,57 @@ export function FileUpload() {
           throw new Error(errorData.error || 'Conversion failed');
         }
 
-        let downloadUrl;
-        const contentType = response.headers.get('Content-Type');
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        objectUrls.current.push(url);
 
-        // Handle the response based on the content type
-        if (contentType?.includes('application/json')) {
-          // Handle error response
-          const result = await response.json();
-          if (result.error) throw new Error(result.error);
-          downloadUrl = result.url; // If the response includes a URL
-        } else {
-          // Handle binary response (converted file)
-          const blob = new Blob([await response.arrayBuffer()], { type: contentType || 'application/octet-stream' });
-          downloadUrl = URL.createObjectURL(blob);
-          objectUrls.current.push(downloadUrl); // Track the URL for cleanup
-        }
+        // Update conversion progress
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            progress: 100,
+            status: 'completed',
+            error: null
+          }
+        }));
 
-        // Add to history with completed status
-        const conversionRecord: ConversionRecord = {
+        // Add to session history
+        const record: ConversionRecord = {
           fileName: item.file.name,
           fileSize: item.file.size,
           targetFormat: item.targetFormat,
           status: 'completed',
           timestamp: new Date().toISOString(),
-          downloadUrl
+          downloadUrl: url
         };
         
-        setSessionHistory(prev => [conversionRecord, ...prev]);
+        setSessionHistory(prev => [record, ...prev]);
+        
+        // Update stats
+        incrementConversions();
 
-        // Update progress to completed
-        updateProgress(item.file.name, { progress: 100, status: 'completed' });
+      } catch (error) {
+        console.error('Conversion error:', error);
+        
+        setConversionProgress(prev => ({
+          ...prev,
+          [item.file.name]: {
+            progress: 0,
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          }
+        }));
 
-        // Refresh stats after successful conversion
-        const statsResponse = await fetch('/api/stats');
-        if (statsResponse.ok) {
-          const newStats = await statsResponse.json();
-          setStats(newStats);
-        }
-
-        // Increment conversion count
-        await incrementConversions();
-
-        // Rest of your success handling...
-
-      } catch (err: any) {
-        // Record failed conversion
-        await fetch('/api/stats/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileSize: item.file.size,
-            fromFormat: item.file.name.split('.').pop() || '',
-            toFormat: item.targetFormat,
-            success: false
-          }),
-        });
-
-        updateProgress(item.file.name, { status: 'failed', error: err.message });
-        console.error('Conversion error:', err);
+        const failedRecord: ConversionRecord = {
+          fileName: item.file.name,
+          fileSize: item.file.size,
+          targetFormat: item.targetFormat,
+          status: 'failed',
+          timestamp: new Date().toISOString(),
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+        
+        setSessionHistory(prev => [failedRecord, ...prev]);
       }
     }
   };
@@ -505,12 +484,24 @@ export function FileUpload() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-2 border-green-600/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Conversions</CardTitle>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle className="text-sm font-medium">
+                Total Conversions
+              </CardTitle>
+              <Badge 
+                variant="secondary" 
+                className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0 h-4 w-fit"
+              >
+                Session
+              </Badge>
+            </div>
             <FileText className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{sessionHistory.length}</div>
+            <div className="text-2xl font-bold">
+              {sessionHistory.length}
+            </div>
             <p className="text-xs text-muted-foreground">
               +{sessionHistory.filter(h => 
                 new Date(h.timestamp).getTime() > Date.now() - 24 * 60 * 60 * 1000
@@ -520,8 +511,18 @@ export function FileUpload() {
         </Card>
 
         <Card className="border-2 border-green-600/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Files Ready</CardTitle>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle className="text-sm font-medium">
+                Files Ready
+              </CardTitle>
+              <Badge 
+                variant="secondary" 
+                className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0 h-4 w-fit"
+              >
+                Session
+              </Badge>
+            </div>
             <Clock className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -535,8 +536,18 @@ export function FileUpload() {
         </Card>
 
         <Card className="border-2 border-green-600/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Storage Saved</CardTitle>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle className="text-sm font-medium">
+                Storage Saved
+              </CardTitle>
+              <Badge 
+                variant="secondary" 
+                className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0 h-4 w-fit"
+              >
+                Session
+              </Badge>
+            </div>
             <HardDrive className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -550,8 +561,18 @@ export function FileUpload() {
         </Card>
 
         <Card className="border-2 border-green-600/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
+            <div className="flex flex-col gap-1.5">
+              <CardTitle className="text-sm font-medium">
+                Success Rate
+              </CardTitle>
+              <Badge 
+                variant="secondary" 
+                className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0 h-4 w-fit"
+              >
+                Session
+              </Badge>
+            </div>
             <BarChart className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>

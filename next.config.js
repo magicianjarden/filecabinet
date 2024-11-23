@@ -10,6 +10,9 @@ const nextConfig = {
       'sharp',
       '@ffmpeg/ffmpeg',
       '@ffmpeg/util',
+      '@ffmpeg/core',
+      '@ffmpeg/core-mt',
+      '@ffmpeg-installer/ffmpeg',
       'pdf-lib',
       'mammoth',
       'jszip'
@@ -19,35 +22,20 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true
   },
-  webpack: (config, { isServer }) => {
-    // Handle FFmpeg and other client-side modules
+  webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@ffmpeg/ffmpeg': '@ffmpeg/ffmpeg/dist/ffmpeg.min.js',
       '@ffmpeg/util': '@ffmpeg/util/dist/util.min.js',
     };
-
-    // Handle server-side externals
-    if (isServer) {
-      config.externals.push(
-        'cross-spawn',
-        'spawn-sync',
-        'adm-zip',
-        'tar',
-        'sharp',
-        'pdf-lib',
-        'mammoth',
-        'jszip'
-      );
-    }
-
     return config;
   },
   // Add CORS headers for FFmpeg WASM
   async headers() {
     return [
       {
-        source: '/api/:path*',
+        // Add headers for all routes
+        source: '/:path*',
         headers: [
           {
             key: 'Cross-Origin-Opener-Policy',
@@ -57,6 +45,10 @@ const nextConfig = {
             key: 'Cross-Origin-Embedder-Policy',
             value: 'require-corp',
           },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          }
         ],
       },
     ];
