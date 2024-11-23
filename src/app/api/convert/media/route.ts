@@ -1,41 +1,77 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { mediaConverter } from '@/lib/converters/media';
+import { handleConversionWithStats } from '@/lib/utils/conversion-wrapper';
 
-const MAX_FILE_SIZE = 10485760; // 10 MB in bytes
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
-export async function POST(request: Request) {
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit for media
+
+export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const targetFormat = formData.get('targetFormat') as string;
+    const inputFormat = formData.get('inputFormat') as string;
+    const outputFormat = formData.get('outputFormat') as string;
 
-    if (!file || !targetFormat) {
+    // Validation
+    if (!file || !inputFormat || !outputFormat) {
       return NextResponse.json(
-        { error: 'File and target format are required' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Add file size validation
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json({
-        error: {
-          code: 'FILE_TOO_LARGE',
-          message: `File size exceeds maximum limit of ${MAX_FILE_SIZE} bytes`
-        }
+        error: `File size exceeds limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+        code: 'FILE_TOO_LARGE'
       }, { status: 400 });
     }
 
-    // Return success response
-    return NextResponse.json({ 
-      success: true,
-      message: 'File received for conversion'
-    });
+    if (!mediaConverter.inputFormats.includes(inputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported input format: ${inputFormat}`,
+        code: 'INVALID_INPUT_FORMAT'
+      }, { status: 400 });
+    }
 
-  } catch (error) {
-    console.error('Conversion error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process conversion' },
-      { status: 500 }
+    if (!mediaConverter.outputFormats.includes(outputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported output format: ${outputFormat}`,
+        code: 'INVALID_OUTPUT_FORMAT'
+      }, { status: 400 });
+    }
+
+    const result = await handleConversionWithStats(
+      file,
+      outputFormat,
+      async () => {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const convertedBuffer = await mediaConverter.convert(
+          buffer,
+          inputFormat,
+          outputFormat
+        );
+
+        return convertedBuffer;
+      }
     );
+
+    return new NextResponse(result, {
+      headers: {
+        'Content-Type': `video/${outputFormat}`,
+        'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
+        'Content-Length': result.length.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Media conversion error:', error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Failed to convert media',
+      code: 'CONVERSION_FAILED',
+      details: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 } 

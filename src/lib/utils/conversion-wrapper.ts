@@ -1,54 +1,36 @@
 import { updateStats } from './stats-service';
 
-export async function handleConversionWithStats(
+export async function handleConversionWithStats<T>(
   file: File,
   targetFormat: string,
-  conversionFn: (file: File) => Promise<any>
-) {
+  conversionFn: () => Promise<T>
+): Promise<T> {
   const startTime = Date.now();
   const fileSize = file.size;
   const fromFormat = file.name.split('.').pop()?.toLowerCase() || '';
 
-  console.log('Starting conversion with stats tracking:', {
-    fileSize,
-    fromFormat,
-    targetFormat
-  });
-
   try {
-    // Run the actual conversion
-    const result = await conversionFn(file);
+    const result = await conversionFn();
     
-    // Record successful conversion
-    const endTime = Date.now();
-    const conversionTime = (endTime - startTime) / 1000;
-
-    console.log('Conversion successful, updating stats...', {
-      conversionTime,
-      success: true
-    });
-
+    // Update KV stats
     await updateStats({
       fileSize,
       fromFormat,
       toFormat: targetFormat,
-      conversionTime,
+      conversionTime: Date.now() - startTime,
       success: true
     });
 
-    console.log('Stats updated successfully');
     return result;
   } catch (error) {
-    console.error('Conversion failed, recording failure...', error);
-
-    // Record failed conversion
+    // Update KV stats even for failures
     await updateStats({
       fileSize,
       fromFormat,
       toFormat: targetFormat,
+      conversionTime: Date.now() - startTime,
       success: false
     });
-
     throw error;
   }
 } 

@@ -172,42 +172,30 @@ export async function updateGlobalStats(data: {
   );
 }
 
-export async function updateStats(data: {
+interface StatsUpdate {
   fileSize: number;
   fromFormat: string;
   toFormat: string;
-  conversionTime?: number;
+  conversionTime: number;
   success: boolean;
-}) {
-  try {
-    console.log('Attempting to update stats with data:', data);
+}
 
+export async function updateStats(data: StatsUpdate) {
+  try {
     const hour = new Date().getHours();
     const formatKey = `${data.fromFormat}-to-${data.toFormat}`;
     const sizeCategory = getSizeCategory(data.fileSize);
 
-    // Test KV connection
-    const testResult = await kv.set('test-connection', 'ok');
-    console.log('KV connection test:', testResult);
-
-    const updates = await Promise.all([
+    // Perform all updates atomically
+    await Promise.all([
       // Increment total conversions
-      kv.incr('stats:total_conversions').then(result => {
-        console.log('Updated total_conversions:', result);
-        return result;
-      }),
+      kv.incr('stats:total_conversions'),
       
       // Update success/failure counts
-      kv.incr(`stats:${data.success ? 'successful' : 'failed'}_conversions`).then(result => {
-        console.log('Updated success/failure count:', result);
-        return result;
-      }),
+      kv.incr(`stats:${data.success ? 'successful' : 'failed'}_conversions`),
       
-      // Add conversion time to list (keep last 100)
-      data.conversionTime && kv.lpush('stats:conversion_times', data.conversionTime.toString()).then(result => {
-        console.log('Updated conversion_times:', result);
-        return result;
-      }),
+      // Add conversion time
+      kv.lpush('stats:conversion_times', data.conversionTime.toString()),
       
       // Update format stats
       kv.hincrby('stats:formats', formatKey, 1),
@@ -222,11 +210,16 @@ export async function updateStats(data: {
       kv.incrby('stats:total_size', data.fileSize),
     ]);
 
-    console.log('Stats updated successfully');
-    return true;
+    console.log('Stats updated successfully:', {
+      format: formatKey,
+      size: sizeCategory,
+      success: data.success,
+      time: data.conversionTime
+    });
+
   } catch (error) {
-    console.error('Error updating stats:', error);
-    return false;
+    console.error('Failed to update stats:', error);
+    // Don't throw - we don't want stats failures to affect conversion
   }
 }
 

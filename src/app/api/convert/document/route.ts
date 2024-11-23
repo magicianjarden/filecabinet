@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { documentConverter } from '@/lib/converters/document';
+import { handleConversionWithStats } from '@/lib/utils/conversion-wrapper';
+import { getMimeType } from '@/lib/utils/mime-types';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,26 +12,39 @@ export async function POST(request: NextRequest) {
     const inputFormat = formData.get('inputFormat') as string;
     const outputFormat = formData.get('outputFormat') as string;
 
-    if (!file) {
+    if (!file || !inputFormat || !outputFormat) {
       return NextResponse.json(
-        { error: 'No file provided' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await documentConverter.convert(buffer, inputFormat, outputFormat);
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({
+        error: `File size exceeds limit of ${MAX_FILE_SIZE / (1024 * 1024)}MB`,
+        code: 'FILE_TOO_LARGE'
+      }, { status: 400 });
+    }
+
+    const result = await handleConversionWithStats(
+      file,
+      outputFormat,
+      async () => {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        return await documentConverter.convert(buffer, inputFormat, outputFormat);
+      }
+    );
 
     return new NextResponse(result, {
       headers: {
-        'Content-Type': 'application/octet-stream',
+        'Content-Type': getMimeType(outputFormat),
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
       },
     });
   } catch (error) {
     console.error('Document conversion error:', error);
     return NextResponse.json(
-      { error: 'Failed to convert file' },
+      { error: error instanceof Error ? error.message : 'Failed to convert file' },
       { status: 500 }
     );
   }

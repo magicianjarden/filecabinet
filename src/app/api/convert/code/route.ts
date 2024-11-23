@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { codeConverter } from '@/lib/converters/code';
-import { getMimeType } from '@/config/settings';
+import { handleConversionWithStats } from '@/lib/utils/conversion-wrapper';
+import { getMimeType } from '@/lib/utils/mime-types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,15 +14,21 @@ export async function POST(request: NextRequest) {
     const inputFormat = formData.get('inputFormat') as string;
     const outputFormat = formData.get('outputFormat') as string;
 
-    if (!file) {
+    if (!file || !inputFormat || !outputFormat) {
       return NextResponse.json(
-        { error: 'No file provided' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await codeConverter.convert(buffer, inputFormat, outputFormat);
+    const result = await handleConversionWithStats(
+      file,
+      outputFormat,
+      async () => {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        return await codeConverter.convert(buffer, inputFormat, outputFormat);
+      }
+    );
 
     return new NextResponse(result, {
       headers: {
@@ -32,7 +39,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Code conversion error:', error);
     return NextResponse.json(
-      { error: 'Failed to convert file' },
+      { error: error instanceof Error ? error.message : 'Failed to convert file' },
       { status: 500 }
     );
   }

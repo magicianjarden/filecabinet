@@ -1,59 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateStats } from '@/lib/utils/stats-service';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+import { getFileCategory } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
-  let fileSize = 0;
-  let fromFormat = '';
-  let targetFormat = '';
-
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    targetFormat = formData.get('targetFormat') as string;
-    fileSize = file.size;
-    fromFormat = file.name.split('.').pop() || '';
+    
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    const category = getFileCategory(file.name);
+    const endpoint = `/api/convert/${category}`;
+
+    console.log(`Routing conversion request to ${endpoint}`, {
+      fileName: file.name,
+      fileSize: file.size,
+      category
+    });
 
     return NextResponse.json({
-      message: 'Please use specific converter endpoints',
-      availableEndpoints: [
-        '/api/convert/archive',
-        '/api/convert/document',
-        '/api/convert/image',
-        '/api/convert/media',
-        '/api/convert/code'
-      ]
-    }, { status: 400 });
+      redirect: endpoint,
+      category,
+      message: `Please use the specific endpoint: ${endpoint}`
+    }, { status: 307 });
+
   } catch (error) {
-    console.error('Conversion error:', error);
-
-    // Record failed conversion
-    await updateStats({
-      fileSize,
-      fromFormat,
-      toFormat: targetFormat,
-      success: false
-    });
-
+    console.error('Conversion routing error:', error);
     return NextResponse.json(
-      { error: 'Conversion failed' },
+      { error: 'Failed to process request' },
       { status: 500 }
     );
-  } finally {
-    const endTime = Date.now();
-    const conversionTime = (endTime - startTime) / 1000;
-
-    // Record failed conversion attempt
-    await updateStats({
-      fileSize: 0,
-      fromFormat: '',
-      toFormat: '', 
-      conversionTime,
-      success: false
-    });
   }
 } 
