@@ -18,6 +18,7 @@ import { SizeAnalytics } from '@/components/Stats/SizeAnalytics';
 import { FormatAnalytics } from '@/components/Stats/FormatAnalytics';
 import { PerformanceMetrics } from '@/components/Stats/PerformanceMetrics';
 import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
+import { Badge } from "@/components/ui/badge";
 
 export default function StatsPage() {
   const [stats, setStats] = useState<ConversionStats | null>(null);
@@ -52,7 +53,15 @@ export default function StatsPage() {
         ]}
       />
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
+        <div className="flex items-center gap-3 mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">Analytics</h1>
+          <Badge 
+            variant="secondary" 
+            className="bg-slate-100 text-slate-600 relative -top-1 text-xs px-2 py-0.5"
+          >
+            Sitewide
+          </Badge>
+        </div>
       </div>
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
