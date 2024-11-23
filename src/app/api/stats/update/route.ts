@@ -52,7 +52,6 @@ export async function POST(request: Request) {
     );
   }
 }
-
 function getSizeCategory(size: number): string {
   const mb = size / (1024 * 1024);
   if (mb < 1) return '< 1MB';

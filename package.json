@@ -26,7 +26,7 @@
     "@radix-ui/react-tooltip": "1.0.7",
     "@swc/core": "^1.9.3",
     "@upstash/ratelimit": "1.0.0",
-    "@upstash/redis": "1.28.4",
+    "@upstash/redis": "^1.28.4",
     "@vercel/kv": "^3.0.0",
     "adm-zip": "^0.5.16",
     "class-variance-authority": "^0.7.0",

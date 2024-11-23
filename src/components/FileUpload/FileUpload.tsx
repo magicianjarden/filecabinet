@@ -199,8 +199,10 @@ export function FileUpload() {
         const jobId = `${Date.now()}-${item.file.name}`;
         formData.append('jobId', jobId);
 
+        const startTime = Date.now();
+
         // Start conversion
-        const response = await fetch('/api/convert/media', {
+        const response = await fetch('/api/convert', {
           method: 'POST',
           body: formData,
         });
@@ -209,10 +211,28 @@ export function FileUpload() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        const endTime = Date.now();
+        const conversionTime = (endTime - startTime) / 1000;
+
+        // Update stats with the conversion data
+        await fetch('/api/stats/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileSize: item.file.size,
+            fromFormat: item.file.name.split('.').pop() || '',
+            toFormat: item.targetFormat,
+            conversionTime,
+            success: true
+          }),
+        });
+
         const downloadUrl = URL.createObjectURL(item.file);
         objectUrls.current.push(downloadUrl); // Track the URL for cleanup
 
-        // After successful conversion, add to history with completed status
+        // Add to history with completed status
         const conversionRecord: ConversionRecord = {
           fileName: item.file.name,
           fileSize: item.file.size,
@@ -227,7 +247,7 @@ export function FileUpload() {
         // Update progress to completed
         updateProgress(item.file.name, { progress: 100, status: 'completed' });
 
-        // Update stats after successful conversion
+        // Refresh stats after successful conversion
         const statsResponse = await fetch('/api/stats');
         if (statsResponse.ok) {
           const newStats = await statsResponse.json();
@@ -240,10 +260,22 @@ export function FileUpload() {
         // Rest of your success handling...
 
       } catch (err: any) {
-        // Update progress to failed
-        updateProgress(item.file.name, { status: 'failed', error: err.message });
+        // Record failed conversion
+        await fetch('/api/stats/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fileSize: item.file.size,
+            fromFormat: item.file.name.split('.').pop() || '',
+            toFormat: item.targetFormat,
+            success: false
+          }),
+        });
 
-        // Your existing error handling...
+        updateProgress(item.file.name, { status: 'failed', error: err.message });
+        console.error('Conversion error:', err);
       }
     }
   };
