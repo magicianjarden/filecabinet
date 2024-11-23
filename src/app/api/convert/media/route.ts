@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     return new NextResponse(result, {
       headers: {
-        'Content-Type': `video/${outputFormat}`,
+        'Content-Type': outputFormat.startsWith('audio/') ? `audio/${outputFormat}` : `video/${outputFormat}`,
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
         'Content-Length': result.length.toString(),
       },

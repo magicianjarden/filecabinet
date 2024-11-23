@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': getMimeType(outputFormat),
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
+        'Content-Length': result.length.toString(),
       },
     });
   } catch (error) {

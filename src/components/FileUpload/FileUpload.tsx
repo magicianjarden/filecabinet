@@ -180,10 +180,9 @@ export function FileUpload() {
 
     for (const item of readyFiles) {
       try {
-        // Add file back to queue with processing status
+        // Update status to processing
         setFileQueue(prev => [...prev, { ...item, status: 'processing' }]);
         
-        // Initialize progress
         setConversionProgress(prev => ({
           ...prev,
           [item.file.name]: {
@@ -195,42 +194,48 @@ export function FileUpload() {
 
         const formData = new FormData();
         formData.append('file', item.file);
-        formData.append('targetFormat', item.targetFormat);
-        const jobId = `${Date.now()}-${item.file.name}`;
-        formData.append('jobId', jobId);
+        
+        // Get input format from file extension
+        const inputFormat = item.file.name.split('.').pop()?.toLowerCase() || '';
+        formData.append('inputFormat', inputFormat);
+        formData.append('outputFormat', item.targetFormat);
 
-        const startTime = Date.now();
+        // Get the correct endpoint based on file category
+        const category = getFileCategory(item.file.name);
+        const endpoint = `/api/convert/${category}`;
+        
+        console.log(`Converting file using endpoint: ${endpoint}`, {
+          fileName: item.file.name,
+          inputFormat,
+          outputFormat: item.targetFormat,
+          category
+        });
 
-        // Start conversion
-        const response = await fetch('/api/convert', {
+        const response = await fetch(endpoint, {
           method: 'POST',
-          body: formData,
+          body: formData
         });
 
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Conversion failed');
         }
 
-        const endTime = Date.now();
-        const conversionTime = (endTime - startTime) / 1000;
+        let downloadUrl;
+        const contentType = response.headers.get('Content-Type');
 
-        // Update stats with the conversion data
-        await fetch('/api/stats/update', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileSize: item.file.size,
-            fromFormat: item.file.name.split('.').pop() || '',
-            toFormat: item.targetFormat,
-            conversionTime,
-            success: true
-          }),
-        });
-
-        const downloadUrl = URL.createObjectURL(item.file);
-        objectUrls.current.push(downloadUrl); // Track the URL for cleanup
+        // Handle the response based on the content type
+        if (contentType?.includes('application/json')) {
+          // Handle error response
+          const result = await response.json();
+          if (result.error) throw new Error(result.error);
+          downloadUrl = result.url; // If the response includes a URL
+        } else {
+          // Handle binary response (converted file)
+          const blob = new Blob([await response.arrayBuffer()], { type: contentType || 'application/octet-stream' });
+          downloadUrl = URL.createObjectURL(blob);
+          objectUrls.current.push(downloadUrl); // Track the URL for cleanup
+        }
 
         // Add to history with completed status
         const conversionRecord: ConversionRecord = {

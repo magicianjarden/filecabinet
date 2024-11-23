@@ -49,9 +49,54 @@ export const mimeTypes = {
   'xml': 'application/xml',
 } as const;
 
-export function getMimeType(extension: string): string {
-  const ext = extension.toLowerCase().replace('.', '');
-  return mimeTypes[ext as keyof typeof mimeTypes] || 'application/octet-stream';
+export function getMimeType(format: string): string {
+  const mimeTypes: Record<string, string> = {
+    // Images
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'avif': 'image/avif',
+    'tiff': 'image/tiff',
+    
+    // Documents
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'txt': 'text/plain',
+    'rtf': 'application/rtf',
+    'md': 'text/markdown',
+    'html': 'text/html',
+    
+    // Code
+    'json': 'application/json',
+    'xml': 'application/xml',
+    'yaml': 'application/yaml',
+    'yml': 'application/yaml',
+    'toml': 'application/toml',
+    'js': 'application/javascript',
+    'ts': 'application/typescript',
+    'css': 'text/css',
+    
+    // Archives
+    'zip': 'application/zip',
+    'tar': 'application/x-tar',
+    '7z': 'application/x-7z-compressed',
+    'rar': 'application/x-rar-compressed',
+    
+    // Media
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'avi': 'video/x-msvideo',
+    'mov': 'video/quicktime',
+    'mkv': 'video/x-matroska'
+  };
+
+  return mimeTypes[format.toLowerCase()] || 'application/octet-stream';
 }
 
 export function getExtensionFromMime(mimeType: string): string | null {
