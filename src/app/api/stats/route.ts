@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Fetch all stats data
+    console.log('Fetching stats from KV...');
+
     const [
       totalConversions,
       successfulConversions,
@@ -23,6 +24,17 @@ export async function GET() {
       kv.hgetall('stats:sizes'),
       kv.hgetall('stats:hourly')
     ]);
+
+    console.log('Raw KV data:', {
+      totalConversions,
+      successfulConversions,
+      failedConversions,
+      totalSize,
+      conversionTimes: conversionTimes?.length,
+      formats,
+      sizes,
+      hourly
+    });
 
     // Convert times to numbers and calculate average
     const times = (conversionTimes || []).map(Number).filter(t => !isNaN(t));
@@ -58,6 +70,7 @@ export async function GET() {
       lastUpdated: new Date().toISOString()
     };
 
+    console.log('Processed stats:', stats);
     return NextResponse.json(stats);
   } catch (error) {
     console.error('Error fetching stats:', error);

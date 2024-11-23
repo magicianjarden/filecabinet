@@ -180,6 +180,8 @@ export async function updateStats(data: {
   success: boolean;
 }) {
   try {
+    console.log('Updating stats with data:', data);
+
     const hour = new Date().getHours();
     const formatKey = `${data.fromFormat}-to-${data.toFormat}`;
     const sizeCategory = getSizeCategory(data.fileSize);
@@ -191,9 +193,8 @@ export async function updateStats(data: {
       // Update success/failure counts
       kv.incr(`stats:${data.success ? 'successful' : 'failed'}_conversions`),
       
-      // Add conversion time to list (keep last 100)
+      // Add conversion time if available
       data.conversionTime && kv.lpush('stats:conversion_times', data.conversionTime.toString()),
-      data.conversionTime && kv.ltrim('stats:conversion_times', 0, 99),
       
       // Update format stats
       kv.hincrby('stats:formats', formatKey, 1),
@@ -208,6 +209,7 @@ export async function updateStats(data: {
       kv.incrby('stats:total_size', data.fileSize),
     ]);
 
+    console.log('Stats updated successfully');
     return true;
   } catch (error) {
     console.error('Error updating stats:', error);

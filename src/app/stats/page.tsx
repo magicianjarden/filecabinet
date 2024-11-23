@@ -10,12 +10,14 @@ import {
   Clock, 
   FileType, 
   HardDrive, 
-  BarChart3 
+  BarChart3, 
+  BarChart2 
 } from "lucide-react";
 import { ConversionChart } from '@/components/Stats/ConversionChart';
 import { SizeAnalytics } from '@/components/Stats/SizeAnalytics';
 import { FormatAnalytics } from '@/components/Stats/FormatAnalytics';
 import { PerformanceMetrics } from '@/components/Stats/PerformanceMetrics';
+import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 
 export default function StatsPage() {
   const [stats, setStats] = useState<ConversionStats | null>(null);
@@ -41,6 +43,14 @@ export default function StatsPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 pt-6">
+      <BreadcrumbNav 
+        items={[
+          {
+            title: "Analytics",
+            icon: <BarChart2 className="h-4 w-4" />,
+          }
+        ]}
+      />
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
       </div>

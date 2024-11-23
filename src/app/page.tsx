@@ -4,6 +4,8 @@ import { FileUpload } from '@/components/FileUpload';
 import { Header } from '@/components/Header';
 import { SupportedFormats } from '@/components/SupportedFormats';
 import { motion } from 'framer-motion';
+import { FileDown } from "lucide-react";
+import { BreadcrumbNav } from "@/components/ui/breadcrumb-nav";
 
 export default function Home() {
   return (

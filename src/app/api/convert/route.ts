@@ -7,10 +7,16 @@ export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  
+  let fileSize = 0;
+  let fromFormat = '';
+  let targetFormat = '';
+
   try {
     const formData = await request.formData();
-    const { inputFormat, outputFormat } = await request.json();
+    const file = formData.get('file') as File;
+    targetFormat = formData.get('targetFormat') as string;
+    fileSize = file.size;
+    fromFormat = file.name.split('.').pop() || '';
 
     return NextResponse.json({
       message: 'Please use specific converter endpoints',
@@ -23,9 +29,19 @@ export async function POST(request: NextRequest) {
       ]
     }, { status: 400 });
   } catch (error) {
+    console.error('Conversion error:', error);
+
+    // Record failed conversion
+    await updateStats({
+      fileSize,
+      fromFormat,
+      toFormat: targetFormat,
+      success: false
+    });
+
     return NextResponse.json(
-      { error: 'Invalid request' },
-      { status: 400 }
+      { error: 'Conversion failed' },
+      { status: 500 }
     );
   } finally {
     const endTime = Date.now();
