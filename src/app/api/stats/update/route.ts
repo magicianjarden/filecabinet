@@ -3,31 +3,61 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { fileSize } = await request.json();
+    const { 
+      fileSize, 
+      fromFormat, 
+      toFormat, 
+      conversionTime, 
+      success 
+    } = await request.json();
 
-    // Get current values with default values if null
-    const [totalConversions, totalSize, successfulConversions] = await Promise.all([
-      kv.get<number>('total_conversions').then(val => val ?? 0),
-      kv.get<number>('total_size').then(val => val ?? 0),
-      kv.get<number>('successful_conversions').then(val => val ?? 0)
-    ]);
+    const hour = new Date().getHours().toString();
+    const today = new Date().toISOString().split('T')[0];
 
-    // Update values
+    // Increment counters
     await Promise.all([
-      kv.set('total_conversions', totalConversions + 1),
-      kv.set('total_size', totalSize + fileSize),
-      kv.set('successful_conversions', successfulConversions + 1)
+      // Update total conversions
+      kv.incr('stats:total_conversions'),
+      
+      // Update today's conversions
+      kv.incr(`stats:daily:${today}`),
+      
+      // Update successful/failed counts
+      success 
+        ? kv.incr('stats:successful_conversions')
+        : kv.incr('stats:failed_conversions'),
+      
+      // Update total size
+      kv.incrby('stats:total_size', fileSize),
+      
+      // Update format stats
+      kv.hincrby('stats:formats', `${fromFormat}-to-${toFormat}`, 1),
+      
+      // Update size category
+      kv.hincrby('stats:sizes', getSizeCategory(fileSize), 1),
+      
+      // Update hourly activity
+      kv.hincrby('stats:hourly', hour, 1),
+      
+      // Add conversion time to list
+      conversionTime && kv.rpush('stats:conversion_times', conversionTime.toString())
     ]);
 
-    // Return updated stats
-    return NextResponse.json({
-      totalConversions: totalConversions + 1,
-      totalSize: totalSize + fileSize,
-      todayConversions: 0,
-      successRate: Math.round(((successfulConversions + 1) / (totalConversions + 1)) * 100)
-    });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to update stats:', error);
-    return NextResponse.json({ error: 'Failed to update stats' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to update stats' },
+      { status: 500 }
+    );
   }
+}
+
+function getSizeCategory(size: number): string {
+  const mb = size / (1024 * 1024);
+  if (mb < 1) return '< 1MB';
+  if (mb < 5) return '1-5MB';
+  if (mb < 10) return '5-10MB';
+  if (mb < 50) return '10-50MB';
+  return '> 50MB';
 }
