@@ -1,115 +1,79 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getGlobalStats } from "@/lib/utils/stats-service";
-import { ConversionStats } from "@/types/stats";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SizeAnalytics } from "@/components/Stats/SizeAnalytics";
-import { FormatAnalytics } from "@/components/Stats/FormatAnalytics";
-import { PerformanceMetrics } from "@/components/Stats/PerformanceMetrics";
-import { ConversionTrends } from "@/components/Stats/ConversionTrends";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { ConversionStats } from '@/types/stats';
+import { ConversionChart } from '@/components/Stats/ConversionChart';
+import { ConversionTrends } from '@/components/Stats/ConversionTrends';
+import { FormatAnalytics } from '@/components/Stats/FormatAnalytics';
+import { PerformanceMetrics } from '@/components/Stats/PerformanceMetrics';
+import { SizeAnalytics } from '@/components/Stats/SizeAnalytics';
 
 export default function StatsPage() {
-  const defaultStats: ConversionStats = {
-    totalConversions: 0,
-    todayConversions: 0,
-    successfulConversions: 0,
-    failedConversions: 0,
-    totalSize: 0,
-    averageTime: 0,
-    conversionRate: 0,
-    conversionTimes: [],
-    byFormat: {},
-    bySize: {},
-    hourlyActivity: {},
-    successRate: 0,
-    lastUpdated: new Date().toISOString(),
-    popularConversions: []
-  };
-
-  const [stats, setStats] = useState<ConversionStats>(defaultStats);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const fetchStats = async () => {
-    try {
-      setIsRefreshing(true);
-      const data = await getGlobalStats();
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  };
+  const [stats, setStats] = useState<ConversionStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch('/api/stats');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Fetched stats:', data); // Debug log
+        setStats(data);
+      } catch (error: unknown) {
+        console.error('Error fetching stats:', error);
+        setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
     fetchStats();
+    // Refresh stats every 30 seconds
     const interval = setInterval(fetchStats, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="container mx-auto py-8 space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Conversion Statistics</h1>
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        </div>
-        <div className="space-y-8">
-          <Skeleton className="h-[400px] w-full" />
-          <Skeleton className="h-[400px] w-full" />
-        </div>
-      </div>
-    );
+  if (error) {
+    return <div className="p-4 text-red-600">Error loading stats: {error}</div>;
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
-      <div className="flex items-center justify-between">
-        <Link href="/">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Button>
-        </Link>
-      </div>
+    <div className="container mx-auto p-4 space-y-8">
+      <h1 className="text-2xl font-bold">Conversion Statistics</h1>
+      
+      <div className="grid gap-6">
+        <ConversionChart 
+          conversionTimes={stats?.conversionTimes || []}
+          isLoading={isLoading}
+        />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Conversion Statistics</h1>
-        <p className="text-sm text-muted-foreground">
-          Last updated: {new Date(stats.lastUpdated).toLocaleTimeString()}
-        </p>
-      </div>
-
-      <div className="grid gap-8">
         <ConversionTrends 
-          hourlyActivity={stats.hourlyActivity}
-          totalConversions={stats.totalConversions}
-          conversionRate={stats.successRate}
-          isLoading={isRefreshing}
+          hourlyActivity={stats?.hourlyActivity || {}}
+          totalConversions={stats?.totalConversions || 0}
+          conversionRate={stats?.conversionRate || 0}
+          isLoading={isLoading}
         />
-        
+
         <FormatAnalytics 
-          popularConversions={stats.popularConversions}
-          isLoading={isRefreshing}
+          popularConversions={stats?.popularConversions || []}
+          isLoading={isLoading}
         />
-        
-        <SizeAnalytics 
-          bySize={stats.bySize}
-          totalSize={stats.totalSize}
-          isLoading={isRefreshing}
-        />
-        
+
         <PerformanceMetrics 
-          averageTime={stats.averageTime}
-          successRate={stats.successRate}
-          conversionTimes={stats.conversionTimes}
-          isLoading={isRefreshing}
+          averageTime={stats?.averageTime || 0}
+          successRate={stats?.successRate || 0}
+          conversionTimes={stats?.conversionTimes || []}
+          isLoading={isLoading}
+        />
+
+        <SizeAnalytics 
+          bySize={stats?.bySize || {}}
+          totalSize={stats?.totalSize || 0}
+          isLoading={isLoading}
         />
       </div>
     </div>
