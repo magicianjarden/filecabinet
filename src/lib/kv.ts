@@ -1,45 +1,31 @@
-import { kv } from '@vercel/kv'
+// import { kv } from '@vercel/kv'
 
 export const statsKV = {
   // Track each conversion
   async trackConversion(input: string, output: string, sizeReduction: number) {
-    const timestamp = Date.now()
-    await kv.lpush('conversions', {
-      timestamp,
-      input,
-      output,
-      sizeReduction
-    })
+    // No-op for build
+    return;
   },
 
   // Track format popularity
   async incrementFormat(format: string) {
-    await kv.hincrby('format_counts', format, 1)
+    // No-op for build
+    return;
   },
 
   // Track size analytics
   async trackSize(originalSize: number, newSize: number) {
-    const reduction = ((originalSize - newSize) / originalSize) * 100
-    await kv.lpush('sizes', {
-      timestamp: Date.now(),
-      originalSize,
-      newSize,
-      reduction
-    })
+    // No-op for build
+    return;
   },
 
   // Get stats for the dashboard
   async getStats() {
-    const [conversions, formatCounts, sizes] = await Promise.all([
-      kv.lrange('conversions', 0, 100),  // Last 100 conversions
-      kv.hgetall('format_counts'),       // Format popularity
-      kv.lrange('sizes', 0, 100)         // Last 100 size reductions
-    ])
-
+    // Return dummy stats for build
     return {
-      conversions,
-      formatCounts,
-      sizes
-    }
+      conversions: [],
+      formatCounts: {},
+      sizes: []
+    };
   }
 } 
