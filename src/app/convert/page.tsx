@@ -1,3 +1,5 @@
+'use client';
+
 import { FileUpload } from '@/components/FileUpload';
 import { SupportedFormats } from '@/components/SupportedFormats';
 import { Header } from '@/components/Header';
