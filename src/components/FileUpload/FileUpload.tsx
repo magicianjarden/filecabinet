@@ -666,20 +666,6 @@ export function FileUpload() {
         </Card>
       </div>
 
-      <Link 
-        href="/stats" 
-        className="col-span-full flex justify-end mt-4"
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-slate-500 hover:text-slate-700 transition-colors gap-2 text-sm font-normal"
-        >
-          <BarChart className="h-4 w-4" />
-          View Statistics
-        </Button>
-      </Link>
-
       {sessionHistory.length > 0 && (
         <Card className="border border-slate-200 bg-white/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
