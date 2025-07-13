@@ -76,6 +76,8 @@ export function getMimeType(format: string): string {
     'epub': 'application/epub+zip',
     'mobi': 'application/x-mobipocket-ebook',
     'azw3': 'application/vnd.amazon.ebook',
+    // Spreadsheets
+    'csv': 'text/csv',
     
     // Code
     'json': 'application/json',
