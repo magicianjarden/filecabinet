@@ -67,6 +67,33 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {/* Privacy/Transparency Section */}
+        <div className="max-w-2xl w-full mx-auto mb-12 mt-16">
+          <h2 className="text-xl font-bold mb-4 text-slate-900">Privacy & Transparency</h2>
+          <div className="bg-white/80 border border-green-100 rounded-xl p-6 shadow space-y-3 text-slate-700 text-sm">
+            <p><b>What we <span className="text-green-700">do not</span> collect:</b></p>
+            <ul className="list-disc list-inside ml-4 mb-2">
+              <li><b>No accounts or logins:</b> You do not need to sign up or log in to use FileCabinet.</li>
+              <li><b>No personal data:</b> We do not collect your name, email, or any personal identifiers.</li>
+              <li><b>No file contents for sharing:</b> Shared files are <b>encrypted in your browser</b> before upload. Only you and your recipient have the decryption key. We cannot access or decrypt your shared files.</li>
+              <li><b>No persistent cookies or trackers:</b> We do not use analytics, advertising, or tracking cookies.</li>
+            </ul>
+            <p><b>What we <span className="text-green-700">do</span> collect:</b></p>
+            <ul className="list-disc list-inside ml-4 mb-2">
+              <li><b>Minimal technical logs:</b> We may log basic, non-identifying technical information (such as error logs or aggregate usage counts) for debugging and to improve reliability. These logs do <b>not</b> include file contents or personal data.</li>
+              <li><b>Temporary file metadata:</b> For file sharing, we store encrypted file blobs and non-sensitive metadata (filename, size, type, expiration) to enable downloads and expiration. This metadata is deleted after expiration or download (if delete-after-download is enabled).</li>
+              <li><b>Conversion files:</b> For file conversion, your files are uploaded to our server for processing. They are <b>not</b> end-to-end encrypted, but are deleted immediately after conversion. We do not retain or inspect your files.</li>
+              <li><b>Session history (local only):</b> Your conversion history is stored <b>only in your browser memory</b> for your session. It is never sent to our servers.</li>
+            </ul>
+            <p><b>How FileCabinet works:</b></p>
+            <ul className="list-disc list-inside ml-4 mb-2">
+              <li><b>File Sharing:</b> Files are encrypted in your browser using AES-GCM. The encryption key is never sent to our server. Only the encrypted file and non-sensitive metadata are uploaded. The share link contains the decryption key (or password-wrapped key) in the URL fragment, which is never sent to the server.</li>
+              <li><b>File Conversion:</b> Files are uploaded to our server for conversion. They are processed in-memory and deleted after conversion. No file contents are retained or inspected.</li>
+              <li><b>Open Source:</b> The code is open for review. You can verify how everything works on our <a href="https://github.com/magicianjarden/filecabinet" className="underline text-green-700" target="_blank" rel="noopener noreferrer">GitHub</a>.</li>
+            </ul>
+            <p className="text-xs text-slate-500 mt-2">If you have privacy questions or concerns, please <a href="mailto:hello@magicianjarden.com" className="underline text-green-700">contact us</a>.</p>
+          </div>
+        </div>
         {/* How it Works Section */}
         <div className="max-w-4xl w-full mx-auto mb-16">
           <h2 className="text-2xl font-bold text-center mb-8 text-slate-900">How it works</h2>

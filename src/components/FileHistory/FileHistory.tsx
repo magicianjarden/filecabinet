@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/table";
 import { ConversionRecord } from '@/types';
 import { Badge } from "@/components/ui/badge";
+import Link from 'next/link';
 
 interface FileHistoryProps {
   records: ConversionRecord[];
   onDownload: (record: ConversionRecord) => void;
+  onShare?: (record: ConversionRecord) => void;
 }
 
-export function FileHistory({ records, onDownload }: FileHistoryProps) {
+export function FileHistory({ records, onDownload, onShare }: FileHistoryProps) {
   return (
     <div className="space-y-4">
       <Table>
@@ -62,7 +64,7 @@ export function FileHistory({ records, onDownload }: FileHistoryProps) {
                   hour12: true
                 })}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right flex gap-2 justify-end">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -72,6 +74,24 @@ export function FileHistory({ records, onDownload }: FileHistoryProps) {
                   <Download className="h-4 w-4 text-green-600" />
                   <span className="sr-only">Download</span>
                 </Button>
+                <a
+                  className="opacity-0 group-hover:opacity-100 transition-opacity border-green-600 text-green-700 hover:bg-green-50 border rounded px-3 py-1 text-sm font-medium cursor-pointer"
+                  style={{ borderWidth: 1 }}
+                  onClick={e => {
+                    e.preventDefault();
+                    onShare && onShare(record);
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onShare && onShare(record);
+                    }
+                  }}
+                >
+                  Share
+                </a>
               </TableCell>
             </TableRow>
           ))}

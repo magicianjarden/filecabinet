@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { UploadCloud, Link as LinkIcon } from 'lucide-react';
 import { Toggle } from '@/components/ui/toggle';
 import QRCode from 'react-qr-code';
+import { getTempFile } from '@/lib/utils/utils';
 
 // Helper: generate random AES-GCM key and IV
 async function generateKeyAndIV() {
@@ -107,6 +108,16 @@ export default function SharePage() {
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Check for temp file from conversion history
+    const temp = getTempFile();
+    if (temp) {
+      setFile(temp);
+      setShareUrl(null);
+      setError(null);
+    }
+  }, []);
 
   useEffect(() => {
     if (file && uploadedFileInfo && getFileType(uploadedFileInfo.name) === 'text') {

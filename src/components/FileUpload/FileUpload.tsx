@@ -24,6 +24,8 @@ import { useStats } from '@/hooks/useStats';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 import { formatFileSize, getFileExtension } from '@/lib/utils/conversion';
+import { setTempFile } from '@/lib/utils/utils';
+import { useRouter } from 'next/navigation';
 
 interface FileWithStatus {
   file: File;
@@ -88,6 +90,7 @@ export function FileUpload() {
   const [isConverting, setIsConverting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { incrementConversions } = useStats();
+  const router = useRouter();
 
   // Add a ref to track URLs that need cleanup
   const objectUrls = useRef<string[]>([]);
@@ -397,6 +400,22 @@ export function FileUpload() {
     }
   }, [fileQueue]);
 
+  const handleShare = async (record: ConversionRecord) => {
+    if (!record.downloadUrl) return;
+    try {
+      const res = await fetch(record.downloadUrl);
+      const blob = await res.blob();
+      // Guess MIME type from file extension
+      const ext = record.targetFormat || record.fileName.split('.').pop() || '';
+      const mime = getMimeType(ext);
+      const file = new File([blob], record.fileName.replace(/\.[^.]+$/, '') + '.' + ext, { type: mime });
+      setTempFile(file);
+      router.push('/share');
+    } catch (err) {
+      alert('Failed to prepare file for sharing.');
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 space-y-6 max-w-7xl">
       <Card className="border-2 border-green-600/20 hover:border-green-600/40 transition-colors bg-white/50 backdrop-blur-sm">
@@ -695,6 +714,7 @@ export function FileUpload() {
                 a.click();
                 document.body.removeChild(a);
               }}
+              onShare={handleShare}
             />
           </CardContent>
         </Card>
