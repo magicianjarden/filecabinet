@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { FileDown, Link as LinkIcon } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import { Header } from '@/components/Header';
 
 function parseFragment() {
   if (typeof window === 'undefined') return { mode: 'none' };
@@ -259,72 +260,75 @@ export default function SharedFilePage({ params }: { params: { id: string } }) {
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12">
-      <Card className="w-full max-w-xl p-8 shadow-lg border-green-100">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl font-bold">
-            <FileDown className="h-6 w-6 text-green-600" />
-            Shared File
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading && <Progress value={100} className="mb-4" />}
-          {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
-          {passwordRequired && !decryptedBlob && (
-            <div className="mb-4">
-              <div className="mb-2 text-slate-700">This file is password-protected. Enter the password to decrypt:</div>
-              <input
-                type="password"
-                className="border rounded px-3 py-2 w-full mb-2"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Password"
-                disabled={decrypting}
-                onKeyDown={e => { if (e.key === 'Enter') handlePasswordDecrypt(); }}
-                autoFocus
-              />
-              {passwordError && <div className="text-red-600 text-xs mb-2">{passwordError}</div>}
-              <Button className="w-full" onClick={handlePasswordDecrypt} disabled={decrypting || !password}>
-                {decrypting ? 'Decrypting...' : 'Decrypt File'}
-              </Button>
-            </div>
-          )}
-          {fileInfo && !loading && !error && !passwordRequired && (
-            <>
-              {/* Metadata */}
-              <div className="w-full bg-slate-50 rounded p-4 border text-left mb-4">
-                <div className="font-semibold text-slate-800 mb-1">{fileInfo.name}</div>
-                <div className="text-xs text-slate-500 mb-1">{fileInfo.type || 'Unknown type'}</div>
-                <div className="text-xs text-slate-500 mb-1">Size: {fileInfo.size ? `${(fileInfo.size/1024).toFixed(2)} KB` : 'Unknown'}</div>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-xl p-8 shadow-lg border-green-100">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold">
+              <FileDown className="h-6 w-6 text-green-600" />
+              Shared File
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading && <Progress value={100} className="mb-4" />}
+            {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
+            {passwordRequired && !decryptedBlob && (
+              <div className="mb-4">
+                <div className="mb-2 text-slate-700">This file is password-protected. Enter the password to decrypt:</div>
+                <input
+                  type="password"
+                  className="border rounded px-3 py-2 w-full mb-2"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Password"
+                  disabled={decrypting}
+                  onKeyDown={e => { if (e.key === 'Enter') handlePasswordDecrypt(); }}
+                  autoFocus
+                />
+                {passwordError && <div className="text-red-600 text-xs mb-2">{passwordError}</div>}
+                <Button className="w-full" onClick={handlePasswordDecrypt} disabled={decrypting || !password}>
+                  {decrypting ? 'Decrypting...' : 'Decrypt File'}
+                </Button>
               </div>
-              {/* Preview */}
-              {previewUrl && getFileType(fileInfo.name) === 'image' && (
-                <img src={previewUrl} alt="Preview" className="max-w-full max-h-64 rounded border mb-4" />
-              )}
-              {previewUrl && getFileType(fileInfo.name) === 'pdf' && (
-                <iframe src={previewUrl} className="w-full h-64 rounded border mb-4" title="PDF Preview" />
-              )}
-              {textPreview && getFileType(fileInfo.name) === 'text' && (
-                <pre className="bg-slate-100 rounded p-2 mb-4 max-h-64 overflow-auto text-xs w-full">{textPreview}</pre>
-              )}
-              {/* Share link and QR code */}
-              <div className="flex flex-col items-center gap-4 mb-4">
-                <div className="flex items-center gap-2 p-3 bg-green-50 rounded">
-                  <LinkIcon className="h-4 w-4 text-green-600" />
-                  <span className="text-green-700 break-all">{shareUrl}</span>
+            )}
+            {fileInfo && !loading && !error && !passwordRequired && (
+              <>
+                {/* Metadata */}
+                <div className="w-full bg-slate-50 rounded p-4 border text-left mb-4">
+                  <div className="font-semibold text-slate-800 mb-1">{fileInfo.name}</div>
+                  <div className="text-xs text-slate-500 mb-1">{fileInfo.type || 'Unknown type'}</div>
+                  <div className="text-xs text-slate-500 mb-1">Size: {fileInfo.size ? `${(fileInfo.size/1024).toFixed(2)} KB` : 'Unknown'}</div>
                 </div>
-                <div className="bg-white p-4 rounded shadow">
-                  <QRCode value={shareUrl} size={160} />
-                  <div className="text-xs text-slate-500 mt-2 text-center">Scan to open this page</div>
+                {/* Preview */}
+                {previewUrl && getFileType(fileInfo.name) === 'image' && (
+                  <img src={previewUrl} alt="Preview" className="max-w-full max-h-64 rounded border mb-4" />
+                )}
+                {previewUrl && getFileType(fileInfo.name) === 'pdf' && (
+                  <iframe src={previewUrl} className="w-full h-64 rounded border mb-4" title="PDF Preview" />
+                )}
+                {textPreview && getFileType(fileInfo.name) === 'text' && (
+                  <pre className="bg-slate-100 rounded p-2 mb-4 max-h-64 overflow-auto text-xs w-full">{textPreview}</pre>
+                )}
+                {/* Share link and QR code */}
+                <div className="flex flex-col items-center gap-4 mb-4">
+                  <div className="flex items-center gap-2 p-3 bg-green-50 rounded">
+                    <LinkIcon className="h-4 w-4 text-green-600" />
+                    <span className="text-green-700 break-all">{shareUrl}</span>
+                  </div>
+                  <div className="bg-white p-4 rounded shadow">
+                    <QRCode value={shareUrl} size={160} />
+                    <div className="text-xs text-slate-500 mt-2 text-center">Scan to open this page</div>
+                  </div>
                 </div>
-              </div>
-              <Button className="w-full" onClick={handleDownload} disabled={!decryptedBlob || downloading}>
-                {downloading ? 'Downloading...' : 'Download File'}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                <Button className="w-full" onClick={handleDownload} disabled={!decryptedBlob || downloading}>
+                  {downloading ? 'Downloading...' : 'Download File'}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 } 
