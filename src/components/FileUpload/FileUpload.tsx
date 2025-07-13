@@ -405,13 +405,22 @@ export function FileUpload() {
     try {
       const res = await fetch(record.downloadUrl);
       const blob = await res.blob();
-      // Guess MIME type from file extension
+      // Guess MIME type from file extension, fallback to application/octet-stream
       const ext = record.targetFormat || record.fileName.split('.').pop() || '';
-      const mime = getMimeType(ext);
-      const file = new File([blob], record.fileName.replace(/\.[^.]+$/, '') + '.' + ext, { type: mime });
+      let mime = getMimeType(ext);
+      if (!mime || mime === 'application/octet-stream') {
+        // Try to use blob.type if available
+        mime = blob.type || 'application/octet-stream';
+      }
+      // Ensure file name has the correct extension
+      let baseName = record.fileName.replace(/\.[^.]+$/, '');
+      if (!baseName) baseName = 'file';
+      const fileName = `${baseName}.${ext}`;
+      const file = new File([blob], fileName, { type: mime });
       setTempFile(file);
       router.push('/share');
     } catch (err) {
+      console.error('Failed to prepare file for sharing:', err);
       alert('Failed to prepare file for sharing.');
     }
   };
