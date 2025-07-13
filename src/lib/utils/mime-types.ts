@@ -16,6 +16,10 @@ export const mimeTypes = {
   'txt': 'text/plain',
   'rtf': 'application/rtf',
   'odt': 'application/vnd.oasis.opendocument.text',
+  // Ebooks
+  'epub': 'application/epub+zip',
+  'mobi': 'application/x-mobipocket-ebook',
+  'azw3': 'application/vnd.amazon.ebook',
   
   // Media
   'mp4': 'video/mp4',
@@ -68,6 +72,10 @@ export function getMimeType(format: string): string {
     'rtf': 'application/rtf',
     'md': 'text/markdown',
     'html': 'text/html',
+    // Ebooks
+    'epub': 'application/epub+zip',
+    'mobi': 'application/x-mobipocket-ebook',
+    'azw3': 'application/vnd.amazon.ebook',
     
     // Code
     'json': 'application/json',
