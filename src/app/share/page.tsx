@@ -168,6 +168,8 @@ export default function SharePage() {
       const formData = new FormData();
       formData.append('file', new Blob([encrypted], { type: 'application/octet-stream' }), file.name + '.enc');
       formData.append('iv', ivB64);
+      // Add the original file name for backend to use
+      formData.append('originalName', file.name);
       // Expiration in hours
       const exp = expiration === 'custom' ? Number(customExpiration) : expiration;
       formData.append('expiration', String(exp));
@@ -200,11 +202,14 @@ export default function SharePage() {
             // Encrypt AES key
             const { encryptedKey, wrapIv } = await encryptAESKey(key, wrappingKey);
             // Store encryptedKey, salt, wrapIv, and file iv in the link
+            const encryptedKeyB64 = btoa(String.fromCharCode(...Array.from(encryptedKey)));
+            const saltB64 = btoa(String.fromCharCode(...Array.from(salt)));
+            const wrapIvB64 = btoa(String.fromCharCode(...Array.from(wrapIv)));
             const url =
               `${window.location.origin}/share/${res.id}` +
-              `#encryptedKey=${encodeURIComponent(btoa(String.fromCharCode(...Array.from(encryptedKey))))}` +
-              `&salt=${encodeURIComponent(btoa(String.fromCharCode(...Array.from(salt))))}` +
-              `&wrapIv=${encodeURIComponent(btoa(String.fromCharCode(...Array.from(wrapIv))))}` +
+              `#encryptedKey=${encodeURIComponent(encryptedKeyB64)}` +
+              `&salt=${encodeURIComponent(saltB64)}` +
+              `&wrapIv=${encodeURIComponent(wrapIvB64)}` +
               `&iv=${encodeURIComponent(ivB64)}`;
             setShareUrl(url);
           } else {

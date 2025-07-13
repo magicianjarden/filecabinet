@@ -16,6 +16,7 @@ export async function POST(req: Request) {
   const iv = formData.get('iv') as string | null;
   const expiration = Number(formData.get('expiration')) || 24;
   const deleteOnDownload = formData.get('deleteOnDownload') === 'true';
+  const originalName = formData.get('originalName') as string | null;
   if (!file) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
   }
@@ -52,6 +53,8 @@ export async function POST(req: Request) {
       expires_at: expiresAt,
       delete_on_download: deleteOnDownload,
       iv,
+      name: originalName || file.name,
+      type: file.type,
     },
   ]);
 
@@ -61,5 +64,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: metaError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ id: fileId, name: file.name, type: file.type, ext, path: storagePath });
+  return NextResponse.json({ id: fileId, name: originalName || file.name, type: file.type, ext, path: storagePath });
 } 

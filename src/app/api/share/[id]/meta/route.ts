@@ -31,8 +31,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 
   return NextResponse.json({
-    name: meta.path.replace(/^[^/]*\//, '').replace(/\.enc$/, ''),
-    type: type || 'application/octet-stream',
+    name: meta.name || meta.path.replace(/^[^/]*\//, '').replace(/\.enc$/, ''),
+    type: meta.type || type || 'application/octet-stream',
     size,
   });
 } 
