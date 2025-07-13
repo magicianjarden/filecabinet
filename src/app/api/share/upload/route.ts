@@ -19,6 +19,9 @@ export async function POST(req: Request) {
   if (!file) {
     return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
   }
+  if (file.size > 1 * 1024 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File size exceeds 1GB limit' }, { status: 400 });
+  }
 
   const fileId = uuidv4();
   const ext = file.name.split('.').pop();

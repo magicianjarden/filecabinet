@@ -442,7 +442,7 @@ export function FileUpload() {
               files={fileQueue.map(f => f.file)}
               onFilesSelect={handleFilesSelected}
               accept={Object.values(SUPPORTED_FORMATS).flat().join(',')}
-              maxSize={MAX_FILE_SIZE}
+              maxSize={1 * 1024 * 1024 * 1024}
               multiple={true}
             />
 

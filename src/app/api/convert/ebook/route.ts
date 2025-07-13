@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { documentConverter } from '@/lib/converters/document';
+import { ebookConverter } from '@/lib/converters/ebook';
 import { handleConversionWithStats } from '@/lib/utils/conversion-wrapper';
-import { getMimeType } from '@/lib/utils/mime-types';
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024; // 1GB
 
@@ -26,27 +25,42 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    if (!ebookConverter.inputFormats.includes(inputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported input format: ${inputFormat}`,
+        code: 'INVALID_INPUT_FORMAT'
+      }, { status: 400 });
+    }
+
+    if (!ebookConverter.outputFormats.includes(outputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported output format: ${outputFormat}`,
+        code: 'INVALID_OUTPUT_FORMAT'
+      }, { status: 400 });
+    }
+
     const result = await handleConversionWithStats(
       file,
       outputFormat,
       async () => {
         const buffer = Buffer.from(await file.arrayBuffer());
-        return await documentConverter.convert(buffer, inputFormat, outputFormat);
+        return await ebookConverter.convert(buffer, inputFormat, outputFormat);
       }
     );
 
     return new NextResponse(result, {
       headers: {
-        'Content-Type': getMimeType(outputFormat),
+        'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="converted.${outputFormat}"`,
         'Content-Length': result.length.toString(),
       },
     });
   } catch (error) {
-    console.error('Document conversion error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to convert file' },
-      { status: 500 }
-    );
+    console.error('Ebook conversion error:', error);
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : 'Failed to convert ebook',
+      code: 'CONVERSION_FAILED',
+      details: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 } 

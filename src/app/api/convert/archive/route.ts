@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { archiveConverter } from '@/lib/converters/archive';
 import { handleConversionWithStats } from '@/lib/utils/conversion-wrapper';
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024; // 1GB
 
 export async function POST(request: NextRequest) {
   try {

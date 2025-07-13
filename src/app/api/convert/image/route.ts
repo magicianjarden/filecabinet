@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB limit
+const MAX_FILE_SIZE = 1 * 1024 * 1024 * 1024; // 1GB limit
 
 export async function POST(request: NextRequest) {
   try {

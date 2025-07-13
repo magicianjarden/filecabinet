@@ -21,7 +21,7 @@ export function FileDropzone({
   files, 
   onFilesSelect, 
   accept, 
-  maxSize, 
+  maxSize = 1 * 1024 * 1024 * 1024, 
   multiple = true 
 }: FileDropzoneProps) {
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -60,7 +60,7 @@ export function FileDropzone({
             Drop files here or click to upload
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            {multiple ? 'Upload multiple files' : 'Upload a file'} up to {formatFileSize(maxSize || 0)}
+            {multiple ? 'Upload multiple files' : 'Upload a file'} up to {formatFileSize(maxSize || 1 * 1024 * 1024 * 1024)}
           </p>
         </div>
         {files.length > 0 && (

@@ -13,14 +13,14 @@ type SupportedFormatsType = {
 
 export const settings = {
   maxFileSize: {
-    images: 10 * 1024 * 1024,     // 10MB
-    documents: 25 * 1024 * 1024,  // 25MB
-    media: 100 * 1024 * 1024,     // 100MB
-    archives: 50 * 1024 * 1024,   // 50MB
-    presentations: 25 * 1024 * 1024, // 25MB
-    spreadsheets: 25 * 1024 * 1024,  // 25MB
-    ebooks: 25 * 1024 * 1024,      // 25MB
-    code: 5 * 1024 * 1024,      // 5MB for code files
+    images: 1 * 1024 * 1024 * 1024,     // 1GB
+    documents: 1 * 1024 * 1024 * 1024,  // 1GB
+    media: 1 * 1024 * 1024 * 1024,     // 1GB
+    archives: 1 * 1024 * 1024 * 1024,   // 1GB
+    presentations: 1 * 1024 * 1024 * 1024, // 1GB
+    spreadsheets: 1 * 1024 * 1024 * 1024,  // 1GB
+    ebooks: 1 * 1024 * 1024 * 1024,      // 1GB
+    code: 1 * 1024 * 1024 * 1024,      // 1GB for code files
   } as const,
   supportedFormats: {
     documents: {

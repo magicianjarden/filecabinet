@@ -9,6 +9,8 @@ import convertMdToHtml from 'convert-md-to-html';
 import { writeFileSync, unlinkSync, readFileSync } from 'fs';
 import { join } from 'path';
 import os from 'os';
+import { execFile } from 'child_process';
+const execFileAsync = promisify(execFile);
 
 type PDFParserOutput = {
   Pages: Array<{
@@ -21,8 +23,8 @@ type PDFParserOutput = {
 export const documentConverter: Converter = {
   name: 'Document Converter',
   description: 'Convert between document formats',
-  inputFormats: ['docx', 'txt', 'md', 'pdf', 'html'],
-  outputFormats: ['pdf', 'txt', 'html', 'png', 'json'],
+  inputFormats: ['docx', 'txt', 'md', 'pdf', 'html', 'doc', 'rtf', 'odt', 'pages'],
+  outputFormats: ['pdf', 'txt', 'html', 'png', 'json', 'docx', 'doc', 'rtf', 'odt'],
   
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {
@@ -142,6 +144,46 @@ export const documentConverter: Converter = {
             color: rgb(0, 0, 0),
           });
           return Buffer.from(await pdfDoc.save());
+        }
+      }
+
+      // New: Use LibreOffice/unoconv for DOC, RTF, ODT, PAGES conversions
+      const officeFormats = ['doc', 'rtf', 'odt', 'pages'];
+      if (officeFormats.includes(inputFormat) && ['pdf', 'txt', 'docx', 'doc', 'rtf', 'odt'].includes(outputFormat)) {
+        // Write input to temp file
+        const tmp = require('tmp');
+        const fs = require('fs');
+        const path = require('path');
+        const inputTmp = tmp.tmpNameSync({ postfix: `.${inputFormat}` });
+        const outputDir = tmp.dirSync().name;
+        fs.writeFileSync(inputTmp, input);
+        // Use unoconv or soffice (LibreOffice)
+        let outputFile = path.join(outputDir, `converted.${outputFormat}`);
+        try {
+          await execFileAsync('unoconv', ['-f', outputFormat, '-o', outputFile, inputTmp]);
+        } catch (e) {
+          // Try soffice as fallback
+          await execFileAsync('soffice', ['--headless', '--convert-to', outputFormat, '--outdir', outputDir, inputTmp]);
+        }
+        const result = fs.readFileSync(outputFile);
+        fs.unlinkSync(inputTmp);
+        fs.unlinkSync(outputFile);
+        return result;
+      }
+
+      // HTML to PDF using Puppeteer (if available)
+      if (inputFormat === 'html' && outputFormat === 'pdf') {
+        try {
+          const puppeteer = require('puppeteer');
+          const html = input.toString();
+          const browser = await puppeteer.launch();
+          const page = await browser.newPage();
+          await page.setContent(html);
+          const pdfBuffer = await page.pdf({ format: 'A4' });
+          await browser.close();
+          return Buffer.from(pdfBuffer);
+        } catch (e) {
+          throw new Error('HTML to PDF conversion requires Puppeteer and a Node.js environment.');
         }
       }
 
