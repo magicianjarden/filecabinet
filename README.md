@@ -9,9 +9,11 @@ A modern file conversion web application built with Next.js.
 
 - Quick and easy file conversion
 - Multiple format support
-- Real-time conversion progress
-- Global conversion statistics
+- Real-time conversion progress (future)
+- Global conversion statistics (future)
 - Responsive design
+- Encrpyted End-To-End FileSharing
+
 
 ## Tech Stack
 
