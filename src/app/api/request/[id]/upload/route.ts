@@ -46,12 +46,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   // Update the file_requests row
-  const fileMeta = {
+  const encryptedKey = formData.get('encryptedKey') as string | null;
+  const salt = formData.get('salt') as string | null;
+  const wrapIv = formData.get('wrapIv') as string | null;
+  const fileMeta: any = {
     name: file.name,
     size: file.size,
     type: file.type,
     iv,
   };
+  if (encryptedKey && salt && wrapIv) {
+    fileMeta.encryptedKey = encryptedKey;
+    fileMeta.salt = salt;
+    fileMeta.wrapIv = wrapIv;
+  }
   const { error: updateError } = await supabase
     .from('file_requests')
     .update({
