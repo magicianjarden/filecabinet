@@ -159,8 +159,11 @@ export default function SharePage() {
       // 2. Encrypt file
       const encrypted = await encryptFile(file, key, iv);
       // 3. Export key and IV to base64
-      const keyB64 = await exportKeyToBase64(key);
-      const ivB64 = btoa(String.fromCharCode(...Array.from(iv)));
+      const rawKeyBuffer = await window.crypto.subtle.exportKey('raw', key);
+      const rawKeyArr = Array.from(new Uint8Array(rawKeyBuffer));
+      const keyB64 = btoa(String.fromCharCode(...rawKeyArr));
+      const ivArr = Array.from(iv); // iv is a Uint8Array
+      const ivB64 = btoa(String.fromCharCode(...ivArr));
       // 4. Prepare form data
       const formData = new FormData();
       formData.append('file', new Blob([encrypted], { type: 'application/octet-stream' }), file.name + '.enc');
@@ -197,19 +200,19 @@ export default function SharePage() {
             // Encrypt AES key
             const { encryptedKey, wrapIv } = await encryptAESKey(key, wrappingKey);
             // Store encryptedKey, salt, wrapIv, and file iv in the link
-            setShareUrl(
+            const url =
               `${window.location.origin}/share/${res.id}` +
               `#encryptedKey=${encodeURIComponent(btoa(String.fromCharCode(...Array.from(encryptedKey))))}` +
               `&salt=${encodeURIComponent(btoa(String.fromCharCode(...Array.from(salt))))}` +
               `&wrapIv=${encodeURIComponent(btoa(String.fromCharCode(...Array.from(wrapIv))))}` +
-              `&iv=${encodeURIComponent(ivB64)}`
-            );
+              `&iv=${encodeURIComponent(ivB64)}`;
+            setShareUrl(url);
           } else {
             // No password, store raw key and iv
-            setShareUrl(
+            const url =
               `${window.location.origin}/share/${res.id}` +
-              `#key=${encodeURIComponent(keyB64)}&iv=${encodeURIComponent(ivB64)}`
-            );
+              `#key=${encodeURIComponent(keyB64)}&iv=${encodeURIComponent(ivB64)}`;
+            setShareUrl(url);
           }
         } else {
           setError('Upload failed. Please try again.');
@@ -253,6 +256,9 @@ export default function SharePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
       <Header />
+      <div className="flex items-center justify-center mt-4 mb-2">
+        <span className="inline-block bg-yellow-300 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">Beta</span>
+      </div>
       <main className="container mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[80vh]">
         <div className="w-full flex flex-col md:flex-row gap-8 items-stretch justify-center">
           {/* Send a File Card */}

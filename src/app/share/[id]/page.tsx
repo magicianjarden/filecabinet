@@ -14,10 +14,12 @@ function parseFragment() {
   const hash = window.location.hash.substring(1);
   const params = new URLSearchParams(hash);
   if (params.has('key') && params.has('iv')) {
+    const key = decodeURIComponent(params.get('key') || '');
+    const iv = decodeURIComponent(params.get('iv') || '');
     return {
       mode: 'simple',
-      key: decodeURIComponent(params.get('key') || ''),
-      iv: decodeURIComponent(params.get('iv') || ''),
+      key,
+      iv,
     };
   } else if (
     params.has('encryptedKey') &&
@@ -74,8 +76,19 @@ async function unwrapAesKey(encryptedKeyB64: string, wrapKey: CryptoKey, wrapIvB
   );
 }
 
+// Helper: decode base64 to Uint8Array
+function base64ToUint8Array(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 async function importKey(keyB64: string) {
-  const raw = Uint8Array.from(atob(keyB64), c => c.charCodeAt(0));
+  const raw = base64ToUint8Array(keyB64);
   return await window.crypto.subtle.importKey(
     'raw',
     raw,
@@ -86,7 +99,7 @@ async function importKey(keyB64: string) {
 }
 
 async function decryptFile(encrypted: ArrayBuffer, key: CryptoKey, ivB64: string) {
-  const iv = Uint8Array.from(atob(ivB64), c => c.charCodeAt(0));
+  const iv = base64ToUint8Array(ivB64);
   return await window.crypto.subtle.decrypt(
     { name: 'AES-GCM', iv },
     key,
@@ -142,6 +155,7 @@ export default function SharedFilePage({ params }: { params: { id: string } }) {
         }
         const meta = await metaRes.json();
         setFileInfo(meta);
+        // IMPORTANT: For preview, fetch from /api/share/[id] (no deletion)
         const fileRes = await fetch(`/api/share/${params.id}`);
         if (!fileRes.ok) {
           setError('File not found or expired.');
@@ -218,6 +232,7 @@ export default function SharedFilePage({ params }: { params: { id: string } }) {
   const handleDownload = async () => {
     if (!fileInfo) return;
     setDownloading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/share/${params.id}/download`);
       if (!res.ok) {
@@ -231,6 +246,12 @@ export default function SharedFilePage({ params }: { params: { id: string } }) {
       if (frag.mode === 'simple') {
         cryptoKey = await importKey(frag.key || '');
       } else if (frag.mode === 'password') {
+        if (!password) {
+          setError('Password required to decrypt file.');
+          setDownloading(false);
+          return;
+        }
+        setError(null); // Clear error if password is present
         const wrapKey = await deriveKeyFromPassword(password, frag.salt || '');
         cryptoKey = await unwrapAesKey(frag.encryptedKey || '', wrapKey, frag.wrapIv || '');
       } else {
@@ -238,8 +259,16 @@ export default function SharedFilePage({ params }: { params: { id: string } }) {
         setDownloading(false);
         return;
       }
-      const decrypted = await decryptFile(encrypted, cryptoKey, frag.iv || '');
+      let decrypted;
+      try {
+        decrypted = await decryptFile(encrypted, cryptoKey, frag.iv || '');
+      } catch (err) {
+        setError('Failed to decrypt file.');
+        setDownloading(false);
+        return;
+      }
       const blob = new Blob([decrypted], { type: fileInfo.type || 'application/octet-stream' });
+      setDecryptedBlob(blob); // cache for future downloads
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
