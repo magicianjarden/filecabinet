@@ -259,15 +259,27 @@ export default function SharePage() {
             {/* Expiration selector */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-slate-700 mb-1">Expiration</label>
-              <select
-                className="w-full border rounded px-3 py-2 text-slate-700"
-                value={expiration}
-                onChange={e => setExpiration(e.target.value === 'custom' ? 'custom' : Number(e.target.value))}
-              >
-                {EXPIRATION_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {EXPIRATION_OPTIONS.filter(opt => opt.value !== 'custom').map(opt => (
+                  <Button
+                    key={opt.value}
+                    type="button"
+                    variant={expiration === opt.value ? 'default' : 'outline'}
+                    className={expiration === opt.value ? 'bg-green-600 text-white' : ''}
+                    onClick={() => setExpiration(opt.value as number)}
+                  >
+                    {opt.label}
+                  </Button>
                 ))}
-              </select>
+                <Button
+                  type="button"
+                  variant={expiration === 'custom' ? 'default' : 'outline'}
+                  className={expiration === 'custom' ? 'bg-green-600 text-white' : ''}
+                  onClick={() => setExpiration('custom')}
+                >
+                  Custom...
+                </Button>
+              </div>
               {expiration === 'custom' && (
                 <div className="mt-2">
                   <input
