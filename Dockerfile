@@ -1,25 +1,35 @@
-# Use official Node.js LTS image
-FROM node:20
+# Dockerfile for filecabinet: Next.js + ClamAV + Calibre + conversion tools
+FROM node:20-bullseye
 
-# Install Calibre and dependencies
+# Install system dependencies for file conversion and virus scanning
 RUN apt-get update && \
-    apt-get install -y wget xz-utils && \
-    wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin
+    apt-get install -y \
+      clamav clamav-daemon \
+      calibre \
+      ffmpeg \
+      libreoffice \
+      imagemagick \
+      poppler-utils \
+      ghostscript \
+    && rm -rf /var/lib/apt/lists/*
 
-# Add Calibre to PATH
-ENV PATH="/opt/calibre:${PATH}"
+# Update ClamAV virus database
+RUN freshclam || true
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies first (for better caching)
+# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy the rest of the application code
+# Copy the rest of the app
 COPY . .
 
-# Expose the port (change if your app uses a different port)
+# Build Next.js app
+RUN npm run build
+
+# Expose port 3000
 EXPOSE 3000
 
 # Start the app
