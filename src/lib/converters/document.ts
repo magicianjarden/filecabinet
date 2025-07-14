@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import mammoth from 'mammoth';
-import markdownpdf from 'markdown-pdf';
+import MarkdownIt from 'markdown-it';
+import puppeteer from 'puppeteer';
 import { promisify } from 'util';
 import { Converter } from '@/types';
 import { fromPath } from 'pdf2pic';
@@ -28,64 +29,54 @@ export const documentConverter: Converter = {
   
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {
-      if (inputFormat === 'pdf') {
-        if (outputFormat === 'png') {
-          const tempPath = join(os.tmpdir(), 'temp.pdf');
-          const outputPath = join(os.tmpdir(), 'output.png');
-          writeFileSync(tempPath, input);
-          
-          const options = {
-            density: 100,
-            saveFilename: "output",
-            savePath: os.tmpdir(),
-            format: "png",
-            width: 800
-          };
-          
-          const convert = fromPath(tempPath, options);
-          await convert(1);
-          
-          // Read the generated PNG file
-          const pngBuffer = readFileSync(outputPath);
-          
-          // Cleanup temp files
-          unlinkSync(tempPath);
-          unlinkSync(outputPath);
-          
-          return pngBuffer;
-        }
-        
-        if (outputFormat === 'json') {
-          return new Promise<Buffer>((resolve, reject) => {
-            const pdfParser = new PDFParser();
-            
-            pdfParser.on("pdfParser_dataReady", (pdfData: PDFParserOutput) => {
-              try {
-                const jsonString = JSON.stringify(pdfData);
-                if (typeof jsonString !== 'string') {
-                  throw new Error('Failed to stringify PDF data');
-                }
-                resolve(Buffer.from(jsonString, 'utf-8'));
-              } catch (err) {
-                reject(new Error('Failed to process PDF data'));
-              }
-            });
-            
-            pdfParser.on("pdfParser_dataError", (errMsg: { parserError: Error }) => {
-              reject(new Error(`PDF parsing failed: ${errMsg.parserError.message}`));
-            });
-            
-            pdfParser.parseBuffer(input);
-          });
-        }
+      // Markdown to HTML
+      if (inputFormat === 'md' && outputFormat === 'html') {
+        const md = new MarkdownIt();
+        const html = md.render(input.toString());
+        return Buffer.from(html);
       }
 
-      // Handle Markdown conversions
-      if (inputFormat === 'md') {
-        if (outputFormat === 'html') {
-          const html = convertMdToHtml(input.toString());
-          return Buffer.from(html);
+      // Markdown to PDF (md -> html -> pdf)
+      if (inputFormat === 'md' && outputFormat === 'pdf') {
+        const md = new MarkdownIt();
+        const html = md.render(input.toString());
+        const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({ format: 'A4' });
+        await browser.close();
+        return Buffer.from(pdfBuffer);
+      }
+
+      // HTML to PDF using Puppeteer
+      if (inputFormat === 'html' && outputFormat === 'pdf') {
+        const html = input.toString();
+        const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        const pdfBuffer = await page.pdf({ format: 'A4' });
+        await browser.close();
+        return Buffer.from(pdfBuffer);
+      }
+
+      // DOCX to PDF using LibreOffice CLI
+      if (inputFormat === 'docx' && outputFormat === 'pdf') {
+        const tmp = require('tmp');
+        const fs = require('fs');
+        const path = require('path');
+        const inputTmp = tmp.tmpNameSync({ postfix: `.docx` });
+        const outputDir = tmp.dirSync().name;
+        fs.writeFileSync(inputTmp, input);
+        const outputFile = path.join(outputDir, `converted.pdf`);
+        try {
+          await execFileAsync('soffice', ['--headless', '--convert-to', 'pdf', '--outdir', outputDir, inputTmp]);
+        } catch (e) {
+          throw new Error('LibreOffice (soffice) is not available on this server.');
         }
+        const result = fs.readFileSync(outputFile);
+        fs.unlinkSync(inputTmp);
+        fs.unlinkSync(outputFile);
+        return result;
       }
 
       // DOCX conversions
@@ -169,22 +160,6 @@ export const documentConverter: Converter = {
         fs.unlinkSync(inputTmp);
         fs.unlinkSync(outputFile);
         return result;
-      }
-
-      // HTML to PDF using Puppeteer (if available)
-      if (inputFormat === 'html' && outputFormat === 'pdf') {
-        try {
-          const puppeteer = require('puppeteer');
-          const html = input.toString();
-          const browser = await puppeteer.launch();
-          const page = await browser.newPage();
-          await page.setContent(html);
-          const pdfBuffer = await page.pdf({ format: 'A4' });
-          await browser.close();
-          return Buffer.from(pdfBuffer);
-        } catch (e) {
-          throw new Error('HTML to PDF conversion requires Puppeteer and a Node.js environment.');
-        }
       }
 
       throw new Error(`Unsupported conversion: ${inputFormat} to ${outputFormat}`);
