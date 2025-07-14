@@ -166,13 +166,15 @@ export function FileUpload() {
 
   const getFileCategory = (fileName: string): string => {
     const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    const mime = getMimeType(ext);
-    
-    if (mime.startsWith('image/')) return 'image';
-    if (mime.startsWith('video/') || mime.startsWith('audio/')) return 'media';
-    if (mime.startsWith('application/pdf') || mime.startsWith('application/msword') || mime === 'text/plain') return 'document';
-    if (mime.startsWith('application/zip') || mime.startsWith('application/x-')) return 'archive';
-    return 'document'; // default fallback
+    if (["pdf", "doc", "docx", "txt", "rtf", "odt", "pages"].includes(ext)) return "document";
+    if (["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "heic"].includes(ext)) return "image";
+    if (["mp4", "mov", "avi", "wmv", "flv", "webm", "mkv", "m4v"].includes(ext)) return "media";
+    if (["mp3", "wav", "aac", "wma", "ogg", "m4a", "flac"].includes(ext)) return "media";
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archive";
+    if (["epub", "mobi", "azw3"].includes(ext)) return "ebook";
+    if (["ppt", "pptx", "key"].includes(ext)) return "presentation";
+    if (["xls", "xlsx", "csv", "numbers"].includes(ext)) return "spreadsheet";
+    return "document";
   };
 
   const handleConvert = async () => {

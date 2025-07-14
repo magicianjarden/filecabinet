@@ -26,6 +26,10 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    if (["epub", "mobi", "azw3"].includes(inputFormat) || ["epub", "mobi", "azw3"].includes(outputFormat)) {
+      return NextResponse.json({ error: 'Ebook formats must be converted using the /api/convert/ebook endpoint.' }, { status: 400 });
+    }
+
     const result = await handleConversionWithStats(
       file,
       outputFormat,
