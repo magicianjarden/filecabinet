@@ -10,6 +10,7 @@ export function Header() {
     { href: '/', label: 'Home' },
     { href: '/convert', label: 'Convert' },
     { href: '/share', label: 'Share' },
+    { href: '/scan', label: 'Scan' },
   ];
   return (
     <header className="border-b-2 border-green-100 bg-white sticky top-0 z-30 shadow-sm">
