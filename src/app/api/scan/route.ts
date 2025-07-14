@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
   const buffers: Buffer[] = [];
   const reqBody = req.body as any;
 
-  return new Promise((resolve, reject) => {
+  // Await the result so the return type is Promise<Response>
+  return await new Promise<NextResponse>((resolve, reject) => {
     form.parse(reqBody, async (err: Error | null, fields: Fields, files: Files) => {
       if (err) {
         resolve(NextResponse.json({ error: 'Failed to parse form data.' }, { status: 400 }));
