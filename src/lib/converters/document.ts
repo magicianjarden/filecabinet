@@ -150,7 +150,7 @@ export const documentConverter: Converter = {
         const lines = text.split('\n');
         const fontSize = 20;
         const lineHeight = fontSize * 1.5;
-        const width = Math.max(...lines.map(line => line.length)) * fontSize * 0.6 + 40;
+        const width = Math.max(...lines.map((line: string) => line.length)) * fontSize * 0.6 + 40;
         const height = lines.length * lineHeight + 40;
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
@@ -199,7 +199,7 @@ export const documentConverter: Converter = {
         const lines = text.split('\n');
         const fontSize = 20;
         const lineHeight = fontSize * 1.5;
-        const width = Math.max(...lines.map(line => line.length)) * fontSize * 0.6 + 40;
+        const width = Math.max(...lines.map((line: string) => line.length)) * fontSize * 0.6 + 40;
         const height = lines.length * lineHeight + 40;
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
@@ -406,7 +406,7 @@ export const documentConverter: Converter = {
         const lines = text.split('\n');
         const fontSize = 20;
         const lineHeight = fontSize * 1.5;
-        const width = Math.max(...lines.map(line => line.length)) * fontSize * 0.6 + 40;
+        const width = Math.max(...lines.map((line: string) => line.length)) * fontSize * 0.6 + 40;
         const height = lines.length * lineHeight + 40;
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
