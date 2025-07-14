@@ -8,8 +8,8 @@ const inter = Inter({
 })
 
 export const metadata = {
-  title: 'FileCabinet - Quick & Easy File Conversion',
-  description: 'Convert your files quickly and securely with FileCabinet',
+  title: 'filecabinet - Quick & Easy File Conversion',
+  description: 'Convert your files quickly and securely with filecabinet',
 }
 
 export default function RootLayout({

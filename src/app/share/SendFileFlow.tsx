@@ -343,7 +343,7 @@ export default function SendFileFlow() {
           </div>
           {/* Password protection UI */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1 items-center gap-1">
               Password (optional)
               <span className="ml-1" title="Password is never stored. Only those with the password can decrypt the file.">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#64748b" strokeWidth="2"/><text x="12" y="16" textAnchor="middle" fontSize="12" fill="#64748b">?</text></svg>
