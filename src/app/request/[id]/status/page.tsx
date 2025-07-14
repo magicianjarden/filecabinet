@@ -222,7 +222,7 @@ export default function RequestStatusPage({ params }: { params: { id: string } }
                 {/* Password or Key/IV Prompt */}
                 {passwordRequired ? (
                   <div className="w-full flex flex-col gap-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1 items-center gap-1">
                       <Lock className="h-4 w-4 text-slate-500" /> Password Required
                     </label>
                     <div className="relative flex items-center">

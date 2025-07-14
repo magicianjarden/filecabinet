@@ -246,7 +246,7 @@ export default function RequestUploadPage({ params }: { params: { id: string } }
                 </div>
                 {/* Password section */}
                 <div className="mb-4 w-full">
-                  <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-1 items-center gap-1">
                     <Lock className="h-4 w-4 text-slate-500" /> Password (optional)
                   </label>
                   <div className="relative flex items-center">
