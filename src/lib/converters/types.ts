@@ -10,4 +10,5 @@ export interface ConversionOptions {
   quality?: number;
   resolution?: string;
   compress?: boolean;
+  allPages?: boolean;
 } 

@@ -4,14 +4,15 @@ import { execFile } from 'child_process';
 import { tmpdir } from 'os';
 import { writeFileSync, readFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
+import { settings } from '@/config/settings';
 
 const execFileAsync = promisify(execFile);
 
 export const spreadsheetConverter: Converter = {
   name: 'Spreadsheet Converter',
   description: 'Convert between spreadsheet formats (XLS, XLSX, CSV)',
-  inputFormats: ['xls', 'xlsx', 'csv'],
-  outputFormats: ['xls', 'xlsx', 'csv', 'pdf'],
+  inputFormats: [...settings.supportedFormats.spreadsheets.input],
+  outputFormats: [...settings.supportedFormats.spreadsheets.output],
 
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {

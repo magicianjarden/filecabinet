@@ -4,14 +4,15 @@ import { execFile } from 'child_process';
 import { tmpdir } from 'os';
 import { writeFileSync, readFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
+import { settings } from '@/config/settings';
 
 const execFileAsync = promisify(execFile);
 
 export const presentationConverter: Converter = {
   name: 'Presentation Converter',
   description: 'Convert between presentation formats (PPT, PPTX, KEY, PDF)',
-  inputFormats: ['ppt', 'pptx', 'key'],
-  outputFormats: ['ppt', 'pptx', 'key', 'pdf'],
+  inputFormats: [...settings.supportedFormats.presentations.input],
+  outputFormats: [...settings.supportedFormats.presentations.output],
 
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {

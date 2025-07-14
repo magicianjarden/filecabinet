@@ -1,5 +1,7 @@
 import sharp from 'sharp';
 import { Converter } from '@/types';
+import { settings } from '@/config/settings';
+import { PDFDocument } from 'pdf-lib';
 
 export interface ImageConversionOptions {
   quality?: number;
@@ -12,8 +14,8 @@ export interface ImageConversionOptions {
 export const imageConverter: Converter = {
   name: 'Image Converter',
   description: 'Convert between image formats',
-  inputFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'tiff'],
-  outputFormats: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
+  inputFormats: [...settings.supportedFormats.images.input],
+  outputFormats: [...settings.supportedFormats.images.output],
   
   async convert(
     input: Buffer, 
@@ -35,6 +37,22 @@ export const imageConverter: Converter = {
       // Convert based on format with quality options
       const quality = options.quality || 85;
       const compress = options.compress ?? true;
+
+      // Image to PDF conversion
+      if (outputFormat === 'pdf') {
+        // Load image as buffer
+        const imgBuffer = await image.png().toBuffer();
+        const pdfDoc = await PDFDocument.create();
+        const img = await pdfDoc.embedPng(imgBuffer);
+        const page = pdfDoc.addPage([img.width, img.height]);
+        page.drawImage(img, {
+          x: 0,
+          y: 0,
+          width: img.width,
+          height: img.height
+        });
+        return Buffer.from(await pdfDoc.save());
+      }
 
       switch (outputFormat) {
         case 'jpg':

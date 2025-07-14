@@ -25,6 +25,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    if (!archiveConverter.inputFormats.includes(inputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported input format: ${inputFormat}`,
+        code: 'INVALID_INPUT_FORMAT'
+      }, { status: 400 });
+    }
+    if (!archiveConverter.outputFormats.includes(outputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported output format: ${outputFormat}`,
+        code: 'INVALID_OUTPUT_FORMAT'
+      }, { status: 400 });
+    }
+
     const result = await handleConversionWithStats(
       file,
       outputFormat,

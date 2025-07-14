@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ConversionRecord } from '@/types';
-import { SUPPORTED_FORMATS, MAX_FILE_SIZE } from '@/lib/constants';
+import { settings } from '@/config/settings';
+import { MAX_FILE_SIZE } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 import { X, ArrowRight, FileText, Clock, HardDrive, BarChart } from 'lucide-react';
 import { Progress } from "@/components/ui/progress";
@@ -443,7 +444,7 @@ export function FileUpload() {
             <FileDropzone
               files={fileQueue.map(f => f.file)}
               onFilesSelect={handleFilesSelected}
-              accept={Object.values(SUPPORTED_FORMATS).flat().join(',')}
+              accept={Object.values(settings.supportedFormats).flatMap(f => [...f.input, ...f.output]).join(',')}
               maxSize={1 * 1024 * 1024 * 1024}
               multiple={true}
             />

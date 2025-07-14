@@ -19,51 +19,43 @@ export const settings = {
     archives: 1 * 1024 * 1024 * 1024,   // 1GB
     presentations: 1 * 1024 * 1024 * 1024, // 1GB
     spreadsheets: 1 * 1024 * 1024 * 1024,  // 1GB
-    ebooks: 1 * 1024 * 1024 * 1024,      // 1GB
+    ebooks: 1 * 1024 * 1024 * 1024,      // 1GB for code files
     code: 1 * 1024 * 1024 * 1024,      // 1GB for code files
   } as const,
   supportedFormats: {
     documents: {
-      input: ['docx', 'txt', 'md', 'pdf', 'html', 'rtf', 'odt'],
-      output: ['pdf', 'txt', 'html', 'png', 'json', 'docx']
+      // Only formats with implemented conversions
+      input: ['docx', 'txt', 'md', 'pdf', 'html', 'rtf', 'odt', 'doc', 'pages'],
+      // Only outputs that are actually implemented
+      output: ['pdf', 'txt', 'html', 'png', 'jpg', 'docx']
     },
     images: {
-      input: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'tiff'],
-      output: ['jpg', 'png', 'webp', 'avif']
+      input: ['jpg', 'jpeg', 'png', 'webp', 'avif'],
+      output: ['jpg', 'jpeg', 'png', 'webp', 'avif', 'pdf'] // image→pdf is implemented
     },
     media: {
-      input: [
-        // Video formats we can handle
-        'mp4', 'mov', 'avi', 'webm', 'mkv',
-        // Audio formats we can handle
-        'mp3', 'wav', 'ogg'
-      ],
-      output: [
-        // Video formats we can convert to
-        'mp4', 'webm',
-        // Audio formats we can convert to
-        'mp3', 'wav', 'ogg'
-      ]
+      input: ['mp4', 'mov', 'avi', 'webm', 'mkv', 'mp3', 'wav', 'ogg'],
+      output: ['mp4', 'webm', 'mp3', 'wav', 'ogg'] // Only formats supported by ffmpeg logic
     },
     archives: {
-      input: ['zip', 'tar'],
-      output: ['zip', 'tar']
+      input: ['zip'], // Only zip is supported for extraction
+      output: ['zip'] // Only zip is supported for creation
     },
     presentations: {
       input: ['ppt', 'pptx', 'key'],
-      output: ['ppt', 'pptx', 'key']
+      output: ['ppt', 'pptx', 'key', 'pdf'] // Only these are implemented
     },
     spreadsheets: {
       input: ['xls', 'xlsx', 'csv'],
-      output: ['xls', 'xlsx', 'csv']
+      output: ['xls', 'xlsx', 'csv', 'pdf'] // Only these are implemented
     },
     ebooks: {
-      input: ['epub'],
-      output: ['epub']
+      input: ['epub', 'mobi', 'azw3', 'pdf'],
+      output: ['epub', 'mobi', 'azw3', 'pdf'] // Only these are implemented
     },
     code: {
-      input: ['json', 'xml', 'yaml', 'toml', 'ts', 'js', 'jsx', 'tsx', 'css', 'scss', 'less'],
-      output: ['json', 'xml', 'yaml', 'js', 'css']
+      input: ['json', 'xml', 'yaml', 'toml', 'ts', 'js', 'jsx', 'tsx', 'css', 'scss', 'less', 'csv'],
+      output: ['json', 'xml', 'yaml', 'js', 'css', 'png', 'jpg'] // Add png/jpg for code/data-to-image
     }
   } satisfies SupportedFormatsType
 } as const;

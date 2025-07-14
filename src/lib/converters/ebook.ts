@@ -4,14 +4,15 @@ import { promisify } from 'util';
 import { tmpdir } from 'os';
 import { writeFileSync, readFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
+import { settings } from '@/config/settings';
 
 const execFileAsync = promisify(execFile);
 
 export const ebookConverter: Converter = {
   name: 'Ebook Converter',
   description: 'Convert between ebook formats (EPUB, MOBI, AZW3, PDF)',
-  inputFormats: ['epub', 'mobi', 'azw3', 'pdf'],
-  outputFormats: ['epub', 'mobi', 'azw3', 'pdf'],
+  inputFormats: [...settings.supportedFormats.ebooks.input],
+  outputFormats: [...settings.supportedFormats.ebooks.output],
 
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {

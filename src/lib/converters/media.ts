@@ -5,12 +5,13 @@ import { promisify } from 'util';
 import { writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { settings } from '@/config/settings';
 
 export const mediaConverter: Converter = {
   name: 'Media Converter',
   description: 'Convert between media formats',
-  inputFormats: ['mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'ogg'],
-  outputFormats: ['mp4', 'webm', 'mp3', 'wav'],
+  inputFormats: [...settings.supportedFormats.media.input],
+  outputFormats: [...settings.supportedFormats.media.output],
   
   async convert(
     input: Buffer,

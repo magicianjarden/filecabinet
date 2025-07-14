@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FORMAT_MAPPING } from "@/lib/constants/formats";
+import { settings } from '@/config/settings';
 
 interface ConversionOptionsProps {
   currentFormat: string;
@@ -16,7 +16,10 @@ export function ConversionOptions({
   targetFormat, 
   onFormatChange 
 }: ConversionOptionsProps) {
-  const options = FORMAT_MAPPING[currentFormat.toLowerCase()] || [];
+  // Find the category that contains the currentFormat as input
+  const category = Object.values(settings.supportedFormats).find(cfg => cfg.input.includes(currentFormat.toLowerCase()));
+  // Only show output formats that are actually implemented for this input
+  const options = category ? category.output.filter(outputFmt => outputFmt !== currentFormat.toLowerCase()) : [];
 
   return (
     <div className="flex flex-wrap gap-2 max-w-full overflow-x-auto pb-2">

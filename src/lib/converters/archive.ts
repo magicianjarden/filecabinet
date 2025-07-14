@@ -1,11 +1,12 @@
 import JSZip from 'jszip';
 import { Converter } from '@/types';
+import { settings } from '@/config/settings';
 
 export const archiveConverter: Converter = {
   name: 'Archive Converter',
   description: 'Converts between archive formats (ZIP, TAR)',
-  inputFormats: ['zip', 'tar'],
-  outputFormats: ['zip', 'tar'],
+  inputFormats: [...settings.supportedFormats.archives.input],
+  outputFormats: [...settings.supportedFormats.archives.output],
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {
       const zip = new JSZip();

@@ -5,12 +5,13 @@ import TOML from '@iarna/toml';
 import { transform } from '@swc/core';
 import * as sass from 'sass';
 import less from 'less';
+import { settings } from '@/config/settings';
 
 export const codeConverter: Converter = {
   name: 'Code Converter',
   description: 'Convert between code formats',
-  inputFormats: ['json', 'xml', 'yaml', 'toml', 'ts', 'js', 'jsx', 'tsx', 'css', 'scss', 'less'],
-  outputFormats: ['json', 'xml', 'yaml', 'js', 'css'],
+  inputFormats: [...settings.supportedFormats.code.input],
+  outputFormats: [...settings.supportedFormats.code.output],
   
   async convert(input: Buffer, inputFormat: string, outputFormat: string): Promise<Buffer> {
     try {

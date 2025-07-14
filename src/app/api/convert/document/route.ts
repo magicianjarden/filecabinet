@@ -30,6 +30,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ebook formats must be converted using the /api/convert/ebook endpoint.' }, { status: 400 });
     }
 
+    if (!documentConverter.inputFormats.includes(inputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported input format: ${inputFormat}`,
+        code: 'INVALID_INPUT_FORMAT'
+      }, { status: 400 });
+    }
+    if (!documentConverter.outputFormats.includes(outputFormat)) {
+      return NextResponse.json({
+        error: `Unsupported output format: ${outputFormat}`,
+        code: 'INVALID_OUTPUT_FORMAT'
+      }, { status: 400 });
+    }
+
     const result = await handleConversionWithStats(
       file,
       outputFormat,

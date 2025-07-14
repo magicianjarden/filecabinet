@@ -19,50 +19,50 @@ export function SupportedFormats() {
   const categories: Category[] = [
     {
       name: 'Documents',
-      formats: settings.supportedFormats.documents.input,
+      formats: settings.supportedFormats.documents.input.filter(inputFmt => settings.supportedFormats.documents.output.length > 0),
       description: 'PDF, Word, Text files and more',
       icon: <FileText className="h-4 w-4" />
     },
     {
       name: 'Images',
-      formats: settings.supportedFormats.images.input,
+      formats: settings.supportedFormats.images.input.filter(inputFmt => settings.supportedFormats.images.output.length > 0),
       description: 'JPG, PNG, WebP and more',
       icon: <Image className="h-4 w-4" />
     },
     {
       name: 'Media',
-      formats: settings.supportedFormats.media.input,
+      formats: settings.supportedFormats.media.input.filter(inputFmt => settings.supportedFormats.media.output.length > 0),
       description: 'Video and audio formats',
       icon: <Film className="h-4 w-4" />
     },
     {
       name: 'Archives',
-      formats: settings.supportedFormats.archives.input,
+      formats: settings.supportedFormats.archives.input.filter(inputFmt => settings.supportedFormats.archives.output.length > 0),
       description: 'ZIP, RAR, and other archives',
       icon: <Archive className="h-4 w-4" />,
       note: 'Converts to ZIP'
     },
     {
       name: 'Presentations',
-      formats: settings.supportedFormats.presentations.input,
+      formats: settings.supportedFormats.presentations.input.filter(inputFmt => settings.supportedFormats.presentations.output.length > 0),
       description: 'PowerPoint and Keynote',
       icon: <PresentationIcon className="h-4 w-4" />
     },
     {
       name: 'Spreadsheets',
-      formats: settings.supportedFormats.spreadsheets.input,
+      formats: settings.supportedFormats.spreadsheets.input.filter(inputFmt => settings.supportedFormats.spreadsheets.output.length > 0),
       description: 'Excel, CSV, and Numbers',
       icon: <Table className="h-4 w-4" />
     },
     {
       name: 'Ebooks',
-      formats: settings.supportedFormats.ebooks.input,
+      formats: settings.supportedFormats.ebooks.input.filter(inputFmt => settings.supportedFormats.ebooks.output.length > 0),
       description: 'EPUB, MOBI, and AZW3',
       icon: <Book className="h-4 w-4" />
     },
     {
       name: 'Code',
-      formats: settings.supportedFormats.code.input,
+      formats: settings.supportedFormats.code.input.filter(inputFmt => settings.supportedFormats.code.output.length > 0),
       description: 'JSON, YAML, XML, and CSV',
       color: 'border-blue-600/20',
       icon: <FileCode className="h-4 w-4" />,
