@@ -1,5 +1,6 @@
 import { Inter } from 'next/font/google'
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { AuthProvider } from "@/contexts/AuthContext"
 import "./globals.css"
 
 const inter = Inter({ 
@@ -20,9 +21,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <AuthProvider>
         <TooltipProvider>
           {children}
         </TooltipProvider>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -14,6 +14,7 @@ export function Header() {
     { href: '/convert', label: 'Convert' },
     { href: '/share', label: 'Share' },
     { href: '/scan', label: 'Scan' },
+    { href: '/drive', label: 'Drive' },
   ];
   return (
     <header className="border-b-2 border-green-100 bg-gradient-to-r from-green-50 via-white to-blue-50 sticky top-0 z-30 shadow-sm">
